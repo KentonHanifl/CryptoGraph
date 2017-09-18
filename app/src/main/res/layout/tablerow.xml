@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableRow xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="?android:attr/listPreferredItemHeight"
+    android:focusable="true" >
+
+    <TextView
+        android:id="@+id/tableCell1"
+        android:layout_width="wrap_content"
+        android:layout_column="0"
+        android:layout_weight="1"
+        android:textSize="20dp"/>
+
+    <!--
+    <TextView
+        android:id="@+id/tableCell2"
+        android:layout_width="wrap_content"
+        android:layout_column="1"
+        android:layout_weight="1"
+        android:textSize="7px"/>
+
+    <TextView
+        android:id="@+id/tableCell3"
+        android:layout_width="wrap_content"
+        android:layout_column="2"
+        android:layout_weight="1"
+        android:textSize="7px"/>
+
+    <TextView
+        android:id="@+id/tableCell4"
+        android:layout_width="wrap_content"
+        android:layout_column="3"
+        android:layout_weight="1"
+        android:textSize="7px" />
+        -->
+</TableRow>

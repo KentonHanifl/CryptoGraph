@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 import org.w3c.dom.Text;
@@ -40,6 +42,14 @@ int a = 0;
                 a++;
             }
         });
+        for(int i = 0; i<40; i++) {
+            TableLayout table = (TableLayout) findViewById(R.id.table);
+            TableRow row = (TableRow) getLayoutInflater().inflate(R.layout.tablerow, null);
+            TextView cell = (TextView) row.findViewById(R.id.tableCell1);
+            cell.setText(Integer.toString(i));
+            table.addView(row);
+        }
+
     }
 
     public void setText(String s) {
@@ -60,8 +70,8 @@ int a = 0;
                 URL url = new URL("https://bittrex.com/api/v1.1/public/getmarketsummaries");
                 connection = (HttpURLConnection) url.openConnection();
                 BufferedReader in = new BufferedReader(
-                        new InputStreamReader(
-                                connection.getInputStream()));
+                                    new InputStreamReader(
+                                    connection.getInputStream()));
                 response = new StringBuffer();
                 response.append(in.readLine());
                 Log.d("H", response.toString());
