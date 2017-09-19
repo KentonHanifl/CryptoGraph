@@ -6,31 +6,17 @@
 
     <TextView
         android:id="@+id/tableCell1"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_column="0"
         android:layout_weight="1"
         android:textSize="20dp"/>
 
-    <!--
+
     <TextView
         android:id="@+id/tableCell2"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_column="1"
         android:layout_weight="1"
-        android:textSize="7px"/>
+        android:textSize="20dp"/>
 
-    <TextView
-        android:id="@+id/tableCell3"
-        android:layout_width="wrap_content"
-        android:layout_column="2"
-        android:layout_weight="1"
-        android:textSize="7px"/>
-
-    <TextView
-        android:id="@+id/tableCell4"
-        android:layout_width="wrap_content"
-        android:layout_column="3"
-        android:layout_weight="1"
-        android:textSize="7px" />
-        -->
 </TableRow>

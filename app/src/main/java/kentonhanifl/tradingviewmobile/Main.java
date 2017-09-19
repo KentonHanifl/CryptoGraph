@@ -10,6 +10,9 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
@@ -20,15 +23,17 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 
 public class Main extends AppCompatActivity {
-int a = 0;
+    int a = 0;
+    ArrayList<Currency> Currencies = new ArrayList<Currency>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
-        //TextView text = (TextView) findViewById(R.id.textView2);
 
         Button btn = (Button) findViewById(R.id.button);
         btn.setOnClickListener(new View.OnClickListener() {
@@ -36,27 +41,18 @@ int a = 0;
             public void onClick(View view) {
                 if(a==0) {
                     AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
-
                 }
-                setText(Integer.toString(a));
                 a++;
             }
         });
-        for(int i = 0; i<40; i++) {
-            TableLayout table = (TableLayout) findViewById(R.id.table);
-            TableRow row = (TableRow) getLayoutInflater().inflate(R.layout.tablerow, null);
-            TextView cell = (TextView) row.findViewById(R.id.tableCell1);
-            cell.setText(Integer.toString(i));
-            table.addView(row);
-        }
+        //
 
     }
 
-    public void setText(String s) {
-        TextView text = (TextView) findViewById(R.id.textView2);
-        text.setText(s);
+    public class Currency {
+        public String MarketName;
+        public float Last;
     }
-
 
 
 
@@ -90,10 +86,39 @@ int a = 0;
         }
 
         protected void onPostExecute(StringBuffer r) {
-            //TextView text = (TextView) findViewById(R.id.textView2);
-            String s = r.substring(0, 30);
-            //text.setText(s);
-            setText(s);
+            r.delete(0, r.indexOf("[")+1);
+            r.delete(r.lastIndexOf("]"), r.lastIndexOf("}")+1);
+
+            Gson gsonout = new Gson();
+            while(r.length()!=0)
+            {
+                String json = r.substring(0, r.indexOf("}")+1);
+                Currency c = gsonout.fromJson(json, Currency.class);
+                r.delete(0,r.indexOf("}")+1);
+                if(r.length()!=0)
+                {
+                    r.delete(0,1);
+                }
+                Currencies.add(c);
+            }
+
+            for(int i = 0; i<Currencies.size(); i++) {
+                TableLayout table = (TableLayout) findViewById(R.id.table);
+
+                TableRow row = (TableRow) getLayoutInflater().inflate(R.layout.tablerow, null);
+                if(i%2==0){row.setBackgroundColor(getColor(R.color.rowBackgroundDark));}
+                else {row.setBackgroundColor(getColor(R.color.rowBackgroundLight));}
+                TextView cell = (TextView) row.findViewById(R.id.tableCell1);
+                cell.setText(Currencies.get(i).MarketName);
+
+
+                cell = (TextView) row.findViewById(R.id.tableCell2);
+                cell.setText(String.format("%.8f",Currencies.get(i).Last));
+
+                table.addView(row);
+
+            }
+
             a=0;
         }
     }
