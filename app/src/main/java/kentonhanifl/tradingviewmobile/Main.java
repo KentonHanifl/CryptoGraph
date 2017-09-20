@@ -6,12 +6,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TableLayout;
-import android.widget.TableRow;
-import android.widget.TextView;
+import android.widget.ListView;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import org.w3c.dom.Text;
 
@@ -38,8 +35,10 @@ public class Main extends AppCompatActivity {
         Button btn = (Button) findViewById(R.id.button);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
+            //The worst locking mechanism you've ever seen
             public void onClick(View view) {
-                if(a==0) {
+                if(a==0)
+                {
                     AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
                 }
                 a++;
@@ -49,10 +48,7 @@ public class Main extends AppCompatActivity {
 
     }
 
-    public class Currency {
-        public String MarketName;
-        public float Last;
-    }
+
 
 
 
@@ -90,6 +86,7 @@ public class Main extends AppCompatActivity {
             r.delete(r.lastIndexOf("]"), r.lastIndexOf("}")+1);
 
             Gson gsonout = new Gson();
+            Currencies.clear();
             while(r.length()!=0)
             {
                 String json = r.substring(0, r.indexOf("}")+1);
@@ -103,8 +100,14 @@ public class Main extends AppCompatActivity {
             }
 
             for(int i = 0; i<Currencies.size(); i++) {
-                TableLayout table = (TableLayout) findViewById(R.id.table);
+                ListView list = (ListView) findViewById(R.id.list);
+                customAdapter adapter = new customAdapter(Currencies, Main.this);
+                list.setAdapter(adapter);
 
+
+
+                /*REPLACE--------------------
+                TableLayout table = (TableLayout) findViewById(R.id.table);
                 TableRow row = (TableRow) getLayoutInflater().inflate(R.layout.tablerow, null);
                 if(i%2==0){row.setBackgroundColor(getColor(R.color.rowBackgroundDark));}
                 else {row.setBackgroundColor(getColor(R.color.rowBackgroundLight));}
@@ -116,12 +119,14 @@ public class Main extends AppCompatActivity {
                 cell.setText(String.format("%.8f",Currencies.get(i).Last));
 
                 table.addView(row);
-
+                */
             }
 
             a=0;
         }
     }
+
+
 }
 
 
