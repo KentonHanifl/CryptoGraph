@@ -16,15 +16,15 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 
-public class customAdapter extends ArrayAdapter<Currency>
+public class CustomAdapter extends ArrayAdapter<Currency>
 {
-    ArrayList<Currency> Currencies;
+    ArrayList<Currency> OrigCurrencies;
     ArrayList<Currency> ShownItems;
 
-    public customAdapter(ArrayList<Currency> data, Context context) {
+    public CustomAdapter(ArrayList<Currency> data, Context context) {
         super(context, R.layout.tablerow, data);
-        Currencies = new ArrayList<Currency>();
-        Currencies.addAll(data);
+        OrigCurrencies = new ArrayList<Currency>();
+        OrigCurrencies.addAll(data);
         ShownItems = new ArrayList<Currency>();
         ShownItems.addAll(data);
     }
@@ -37,11 +37,11 @@ public class customAdapter extends ArrayAdapter<Currency>
             protected FilterResults performFiltering(CharSequence constraint) {
                 FilterResults resultsReturned = new FilterResults();
                 ArrayList<Currency> results = new ArrayList<Currency>();
-                if(constraint!= null && Currencies.size()>0 && Currencies!=null)
+                if(constraint!= null && OrigCurrencies.size()>0 && OrigCurrencies!=null)
                 {
-                    for (Currency currency : Currencies)
+                    for (Currency currency : OrigCurrencies)
                     {
-                        if (currency.MarketName.toLowerCase()
+                        if (currency.getName().toLowerCase()
                                                .contains(constraint.toString()))
                         {
                             results.add(currency);
@@ -52,8 +52,8 @@ public class customAdapter extends ArrayAdapter<Currency>
                 }
                 else
                 {
-                    resultsReturned.values = Currencies;
-                    resultsReturned.count = Currencies.size();
+                    resultsReturned.values = OrigCurrencies;
+                    resultsReturned.count = OrigCurrencies.size();
                 }
                 return resultsReturned;
             }
@@ -73,6 +73,18 @@ public class customAdapter extends ArrayAdapter<Currency>
         };
     }
 
+    public void setFavorite(int position)
+    {
+        Main.Currencies.get(position).favorite=true;
+        Main.saveCurrencies();
+    }
+
+    public void unfavorite(int position)
+    {
+        Main.Currencies.get(position).favorite=false;
+        Main.saveCurrencies();
+    }
+
     @NonNull
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
@@ -90,16 +102,32 @@ public class customAdapter extends ArrayAdapter<Currency>
             view.setBackgroundColor(Color.parseColor("#f2f7f6"));
         }
 
+        if (getItem(position).favorite)
+        {
+            view.setBackgroundColor(Color.parseColor("#fff69b"));
+            int i = 0;
+        }
+
         TextView text1 = (TextView) view.findViewById(R.id.tableCell1);
-        final String marketName = getItem(position).MarketName;
-        text1.setText(marketName);
+        final String name = getItem(position).getName();
+        text1.setText(name);
+        final int pos = position;
 
         text1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //Eventually just use this one to
-                Toast toast = Toast.makeText(getContext(), marketName, Toast.LENGTH_SHORT);
+                Toast toast = Toast.makeText(getContext(), name, Toast.LENGTH_SHORT);
                 toast.show();
+                if (getItem(pos).favorite==true)
+                {
+                    unfavorite(pos);
+                }
+                else
+                {
+                    setFavorite(pos);
+                }
+                notifyDataSetChanged();
+
             }
         });
 

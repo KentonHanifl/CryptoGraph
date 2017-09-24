@@ -6,68 +6,80 @@
     android:layout_height="match_parent"
     tools:context="kentonhanifl.tradingviewmobile.Main">
 
-    <Button
-        android:id="@+id/button"
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:text="Refresh"
-        app:layout_constraintBottom_toTopOf="@+id/relativeLayout"
-        app:layout_constraintHorizontal_bias="0.142"
-        app:layout_constraintLeft_toRightOf="@+id/tableSearchBar"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.936" />
+        android:maxLines="1"
+        android:scrollHorizontally="true"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:text=""
+        android:ellipsize="marquee"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:textSize="40sp"
+        android:id="@+id/USDTBanner"
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginRight="7dp"
         app:layout_constraintRight_toRightOf="parent"
         android:layout_marginLeft="8dp"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/relativeLayout" />
+
+    <RelativeLayout
+        android:id="@+id/relativeLayout"
+        android:layout_width="0dp"
+        android:layout_height="400dp"
         app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0"
+        android:layout_marginBottom="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="8dp"
-        app:layout_constraintVertical_bias="0.932"
-        android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
-        android:id="@+id/relativeLayout">
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp">
+
+        <SearchView
+            android:id="@+id/tableSearchBar"
+            android:layout_width="244dp"
+            android:layout_height="63dp"
+            android:queryHint="@string/searchHint"
+            app:layout_constraintHorizontal_bias="0.064"
+            app:layout_constraintTop_toTopOf="@+id/list"
+            android:layout_above="@+id/list"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true" />
+
+        <Button
+            android:id="@+id/refresh"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Refresh"
+            android:layout_alignTop="@+id/tableSearchBar"
+            android:layout_toRightOf="@+id/tableSearchBar"
+            android:layout_toEndOf="@+id/tableSearchBar" />
 
         <ListView
             android:id="@+id/list"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="300dp"
+            android:layout_alignParentBottom="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
+            android:layout_marginBottom="12dp"/>
+        <!--
             tools:layout_editor_absoluteX="8dp"
-            tools:layout_editor_absoluteY="8dp" />
+            tools:layout_editor_absoluteY="8dp"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"-->
     </RelativeLayout>
-
-    <SearchView
-        android:id="@+id/tableSearchBar"
-        android:layout_width="244dp"
-        android:layout_height="63dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:queryHint="@string/searchHint"
-        app:layout_constraintBottom_toTopOf="@+id/relativeLayout"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
 
 
 </android.support.constraint.ConstraintLayout>

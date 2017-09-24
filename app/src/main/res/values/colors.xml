@@ -8,5 +8,6 @@
 
     <color name="rowBackgroundDark">#c5c9c8</color>
     <color name="rowBackgroundLight">#f2f7f6</color>
+    <color name="rowBackgroundFavorite">#fff69b</color>
 
 </resources>
