@@ -4,35 +4,38 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-
 import android.util.Log;
+
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
 
-import com.google.gson.Gson;
-
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.IOException;
+
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.MalformedURLException;
+
 import java.util.ArrayList;
 
+import com.google.gson.Gson;
+
+//ERROR CODES
 //ERR1: Error loading currency. Clear app data and start again.
 
 public class Main extends AppCompatActivity {
 
-    static String tag = "KENTON";
+    static String tag = "KENTON"; //For debug messages
 
     int lock = 0; //Lock on the refresh button
     public static ArrayList<Currency> Currencies = new ArrayList<Currency>();
     public ArrayList<Currency> USDTCurrencies = new ArrayList<Currency>();
 
-
+    //Filename for shared preferences
     final public String filename = "TradeViewData";
     static SharedPreferences data;
     int dataSize;
@@ -43,9 +46,6 @@ public class Main extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        data = getSharedPreferences(filename, 0);
-        dataSize = data.getInt("SIZE", 0);
-
         /*
         Cheap way to get/put an array with shared preferences. Found the implementation at https://stackoverflow.com/questions/7057845/save-arraylist-to-sharedpreferences (The second answer as of 9/23/17)
         Each iteration grabs the data members for each coin and adds it to Currencies
@@ -54,6 +54,9 @@ public class Main extends AppCompatActivity {
         Last
         favorite
         */
+
+        data = getSharedPreferences(filename, 0);
+        dataSize = data.getInt("SIZE", 0);
 
         Currency temp;
         for(int i = 0; i < dataSize; i++)
@@ -70,8 +73,6 @@ public class Main extends AppCompatActivity {
                     USDTCurrencies.add(temp);
                 }
             }
-
-
         }
 
         AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
@@ -88,11 +89,19 @@ public class Main extends AppCompatActivity {
                     lock++;
                     AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
                 }
-
             }
         });
     }
 
+
+    /*
+    --------------------------------------------------------------------------------
+    These are general functions outside of the onCreate() method.
+    --------------------------------------------------------------------------------
+     */
+
+    //Sets the adapter for the list so that data is actually displayed.
+    //Also sets the SearchView onclick listener
     public void setListAdapter()
     {
         ListView list = (ListView) findViewById(R.id.list);
@@ -100,6 +109,7 @@ public class Main extends AppCompatActivity {
         list.setAdapter(adapter);
         list.deferNotifyDataSetChanged();
 
+        //Set the onclick for the searchview
         SearchView tableSearchBar = (SearchView) findViewById(R.id.tableSearchBar);
 
         tableSearchBar.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -118,6 +128,7 @@ public class Main extends AppCompatActivity {
         });
     }
 
+    //Starts the horizontal scrolling for the USDT banner
     public void startUSDTBanner()
     {
         TextView banner = (TextView) findViewById(R.id.USDTBanner);
@@ -130,6 +141,7 @@ public class Main extends AppCompatActivity {
         banner.setHorizontallyScrolling(true);
     }
 
+    //Should be called whenever data is changed in any way. Currently just saves EVERYTHING to shared preferences.
     public static void saveCurrencies()
     {
         SharedPreferences.Editor editor = data.edit();
@@ -147,7 +159,6 @@ public class Main extends AppCompatActivity {
         }
         editor.commit();
     }
-
 
     /*
     --------------------------------------------------------------------------------
@@ -214,12 +225,8 @@ public class Main extends AppCompatActivity {
                         USDTCurrencies.add(c);
                     }
                 }
-                else
+                else //
                 {
-                    if(Currencies.get(Currencies.indexOf(c)).Last!=c.Last)
-                    {
-                        Log.d(tag, "UPDATINGUPDATINGUPDATINGUPDATINGUPDATING " + c.getName());
-                    }
                     Currencies.get(Currencies.indexOf(c)).Last = c.Last;
                     if(c.MarketName.startsWith("USDT-"))
                     {
@@ -241,7 +248,6 @@ public class Main extends AppCompatActivity {
             lock=0; //Reset the lock on the refresh button
         }
     }
-
 }
 
 

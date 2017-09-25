@@ -12,7 +12,6 @@ import android.widget.Filter;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
 import java.util.ArrayList;
 
 
@@ -20,6 +19,12 @@ public class CustomAdapter extends ArrayAdapter<Currency>
 {
     ArrayList<Currency> OrigCurrencies;
     ArrayList<Currency> ShownItems;
+
+    /*
+    --------------------------------------------------------------------------------
+    CONSTRUCTOR
+    --------------------------------------------------------------------------------
+    */
 
     public CustomAdapter(ArrayList<Currency> data, Context context) {
         super(context, R.layout.tablerow, data);
@@ -29,6 +34,12 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         ShownItems.addAll(data);
     }
 
+    /*
+    --------------------------------------------------------------------------------
+    FILTER
+    Filters the ListView when called by the SearchView queries
+    --------------------------------------------------------------------------------
+    */
 
     public Filter getFilter()
     {
@@ -73,17 +84,12 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         };
     }
 
-    public void setFavorite(int position)
-    {
-        Main.Currencies.get(position).favorite=true;
-        Main.saveCurrencies();
-    }
-
-    public void unfavorite(int position)
-    {
-        Main.Currencies.get(position).favorite=false;
-        Main.saveCurrencies();
-    }
+    /*
+    --------------------------------------------------------------------------------
+    GET VIEW
+    Sets all of the text in the ListView
+    --------------------------------------------------------------------------------
+    */
 
     @NonNull
     @Override
@@ -108,6 +114,12 @@ public class CustomAdapter extends ArrayAdapter<Currency>
             int i = 0;
         }
 
+        /*
+        ---------------------------
+        Column One
+        ---------------------------
+        */
+
         TextView text1 = (TextView) view.findViewById(R.id.tableCell1);
         final String name = getItem(position).getName();
         text1.setText(name);
@@ -131,6 +143,12 @@ public class CustomAdapter extends ArrayAdapter<Currency>
             }
         });
 
+        /*
+        ---------------------------
+        Column Two
+        ---------------------------
+        */
+
         TextView text2 = (TextView) view.findViewById(R.id.tableCell2);
         final String last = String.format("%.8f",getItem(position).Last);
         text2.setText(last); //-------Raises a weird warning...
@@ -146,5 +164,21 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         return view;
     }
 
+    /*
+    --------------------------------------------------------------------------------
+    General functions not related to setting the view or filtering data
+    --------------------------------------------------------------------------------
+    */
 
+    public void setFavorite(int position)
+    {
+        Main.Currencies.get(position).favorite=true;
+        Main.saveCurrencies();
+    }
+
+    public void unfavorite(int position)
+    {
+        Main.Currencies.get(position).favorite=false;
+        Main.saveCurrencies();
+    }
 }
