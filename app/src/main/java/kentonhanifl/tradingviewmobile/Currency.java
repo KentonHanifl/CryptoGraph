@@ -1,5 +1,9 @@
 package kentonhanifl.tradingviewmobile;
 
+import android.support.annotation.NonNull;
+
+import java.util.Comparator;
+
 public class Currency
 {
     public String MarketName;
@@ -12,6 +16,13 @@ public class Currency
         MarketName="";
         Last = 0;
     }
+
+    @Override
+    public String toString()
+    {
+        return this.getName();
+    }
+
 
     //Just want to hide the BTC- from the name since default prices are always shown in BTC.
     //Otherwise, we can display the full market name
@@ -53,5 +64,206 @@ public class Currency
         return result;
     }
 
+
 }
 
+/*
+----------------------------
+COMPARATORS
+----------------------------
+*/
+
+class CurrencyNameCompare implements Comparator<Currency>
+{
+    @Override
+    public int compare(Currency lhs, Currency rhs) {
+
+            //Normal sorting
+            if (    !lhs.getName().startsWith("USDT-")
+                    &&
+                    !rhs.getName().startsWith("USDT-"))
+            {
+                return lhs.getName().compareToIgnoreCase(rhs.getName());
+            }
+
+            //Compare BTC to USDT market (BTC comes first)
+            else if (   !lhs.getName().startsWith("USDT-")
+                        &&
+                        rhs.getName().startsWith("USDT-"))
+            {
+                return -1;
+            }
+
+            //Compare USDT to BTC market (BTC comes first)
+            else if (   lhs.getName().startsWith("USDT-")
+                        &&
+                        !rhs.getName().startsWith("USDT-"))
+            {
+                return 1;
+            }
+
+            //Compare USDT to USDT (normal sorting)
+            else if (   lhs.getName().startsWith("USDT-")
+                        &&
+                        rhs.getName().startsWith("USDT-"))
+            {
+                return lhs.getName().compareToIgnoreCase(rhs.getName());
+            }
+        return 0;
+    }
+}
+
+class BackwardsCurrencyNameCompare implements Comparator<Currency>
+{
+    @Override
+    public int compare(Currency lhs, Currency rhs) {
+
+        //Normal sorting
+        if (    !lhs.getName().startsWith("USDT-")
+                &&
+                !rhs.getName().startsWith("USDT-"))
+        {
+            return rhs.getName().compareToIgnoreCase(lhs.getName());
+        }
+
+        //Compare BTC to USDT market (BTC comes first)
+        else if (   !lhs.getName().startsWith("USDT-")
+                &&
+                rhs.getName().startsWith("USDT-"))
+        {
+            return -1;
+        }
+
+        //Compare USDT to BTC market (BTC comes first)
+        else if (   lhs.getName().startsWith("USDT-")
+                &&
+                !rhs.getName().startsWith("USDT-"))
+        {
+            return 1;
+        }
+
+        //Compare USDT to USDT (normal sorting)
+        else if (   lhs.getName().startsWith("USDT-")
+                &&
+                rhs.getName().startsWith("USDT-"))
+        {
+            return rhs.getName().compareToIgnoreCase(lhs.getName());
+        }
+        return 0;
+    }
+}
+
+//----------
+
+class CurrencyPriceCompare implements Comparator<Currency>
+{
+    @Override
+    public int compare(Currency lhs, Currency rhs) {
+
+        //Normal sorting
+        if (    !lhs.getName().startsWith("USDT-")
+                &&
+                !rhs.getName().startsWith("USDT-"))
+        {
+            return Float.compare(rhs.Last,lhs.Last);
+        }
+
+        //Compare BTC to USDT market (BTC comes first)
+        else if (   !lhs.getName().startsWith("USDT-")
+                    &&
+                    rhs.getName().startsWith("USDT-"))
+        {
+            return -1;
+        }
+
+        //Compare USDT to BTC market (BTC comes first)
+        else if (   lhs.getName().startsWith("USDT-")
+                    &&
+                    !rhs.getName().startsWith("USDT-"))
+        {
+            return 1;
+        }
+
+        //Compare USDT to USDT (normal sorting)
+        else if (   lhs.getName().startsWith("USDT-")
+                    &&
+                    rhs.getName().startsWith("USDT-"))
+        {
+            return Float.compare(rhs.Last,lhs.Last);
+        }
+
+
+        return 0;
+    }
+}
+
+class BackwardsCurrencyPriceCompare implements Comparator<Currency>
+{
+    @Override
+    public int compare(Currency lhs, Currency rhs) {
+
+        //Normal sorting
+        if (    !lhs.getName().startsWith("USDT-")
+                &&
+                !rhs.getName().startsWith("USDT-"))
+        {
+            return Float.compare(lhs.Last,rhs.Last);
+        }
+
+        //Compare BTC to USDT market (BTC comes first)
+        else if (   !lhs.getName().startsWith("USDT-")
+                    &&
+                    rhs.getName().startsWith("USDT-"))
+        {
+            return -1;
+        }
+
+        //Compare USDT to BTC market (BTC comes first)
+        else if (   lhs.getName().startsWith("USDT-")
+                    &&
+                    !rhs.getName().startsWith("USDT-"))
+        {
+            return 1;
+        }
+
+        //Compare USDT to USDT (normal sorting)
+        else if (   lhs.getName().startsWith("USDT-")
+                    &&
+                    rhs.getName().startsWith("USDT-"))
+        {
+            return Float.compare(lhs.Last,rhs.Last);
+        }
+        return 0;
+    }
+}
+
+//----------
+
+class CurrencyFavoriteCompare implements Comparator<Currency>
+{
+    @Override
+    public int compare(Currency lhs, Currency rhs) {
+
+        if (lhs.favorite && rhs.favorite)
+        {
+            return lhs.getName().compareToIgnoreCase(rhs.getName());
+        }
+
+        else if (lhs.favorite && !rhs.favorite)
+        {
+            return -1;
+        }
+
+        else if (!lhs.favorite && rhs.favorite)
+        {
+            return 1;
+        }
+
+        else if (!lhs.favorite && !rhs.favorite)
+        {
+            return lhs.getName().compareToIgnoreCase(rhs.getName());
+        }
+
+        return 0;
+    }
+}

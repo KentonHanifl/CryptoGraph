@@ -48,22 +48,52 @@
         <SearchView
             android:id="@+id/tableSearchBar"
             android:layout_width="244dp"
-            android:layout_height="63dp"
+            android:layout_height="40dp"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
             android:queryHint="@string/searchHint"
             app:layout_constraintHorizontal_bias="0.064"
-            app:layout_constraintTop_toTopOf="@+id/list"
-            android:layout_above="@+id/list"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true" />
+            app:layout_constraintTop_toTopOf="@+id/list" />
 
         <Button
             android:id="@+id/refresh"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Refresh"
-            android:layout_alignTop="@+id/tableSearchBar"
-            android:layout_toRightOf="@+id/tableSearchBar"
-            android:layout_toEndOf="@+id/tableSearchBar" />
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true" />
+
+        <Button
+            android:id="@+id/sortName"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/list"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:text="Names" />
+
+        <Button
+            android:id="@+id/sortPrice"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/list"
+            android:layout_toEndOf="@+id/sortName"
+            android:layout_toRightOf="@+id/sortName"
+            android:text="Prices" />
+
+        <Button
+            android:id="@+id/sortFavorites"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/list"
+            android:layout_toEndOf="@+id/sortPrice"
+            android:layout_toRightOf="@+id/sortPrice"
+            android:text="Favorites" />
 
         <ListView
             android:id="@+id/list"

@@ -1,6 +1,9 @@
 package kentonhanifl.tradingviewmobile;
 
+import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,6 +14,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -21,7 +25,9 @@ import java.net.URL;
 import java.net.MalformedURLException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
+import com.github.mikephil.charting.charts.CandleStickChart;
 import com.google.gson.Gson;
 
 //ERROR CODES
@@ -29,7 +35,10 @@ import com.google.gson.Gson;
 
 public class Main extends AppCompatActivity {
 
-    static String tag = "KENTON"; //For debug messages
+    static boolean sortedByName = false;
+    static boolean sortedByPrice = false;
+
+    static String tag = "DEBUGAROO"; //For debug messages
 
     int lock = 0; //Lock on the refresh button
     public static ArrayList<Currency> Currencies = new ArrayList<Currency>();
@@ -75,7 +84,33 @@ public class Main extends AppCompatActivity {
             }
         }
 
-        AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
+        //See if we're connected to the internet
+        //Taken from https://developer.android.com/training/monitoring-device-state/connectivity-monitoring.html#DetermineType
+        ConnectivityManager cm =
+                (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        final boolean isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+
+        if (isConnected)
+        {
+            AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
+        }
+        else
+        {
+            Toast toast = Toast.makeText(this, "No internet connection. Loading data if available.", Toast.LENGTH_SHORT);
+            toast.show();
+            if (dataSize != 0)
+            {
+                //Updating the ListView
+                setListAdapter();
+
+                //Start the scrolling banner for USDT prices
+                startUSDTBanner();
+            }
+
+        }
 
         Button refresh = (Button) findViewById(R.id.refresh);
         refresh.setOnClickListener(new View.OnClickListener() {
@@ -86,11 +121,31 @@ public class Main extends AppCompatActivity {
 
                 if(lock==0 && tableSearchBar.isIconified()) //There were bugs letting the user refresh while the SearchView was pressed, so I just disable it here.
                 {
+                    ConnectivityManager cm =
+                            (ConnectivityManager)Main.this.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+                    //Check if we have network activity before trying to fetch data
+                    NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                    final boolean isConnected = activeNetwork != null &&
+                            activeNetwork.isConnectedOrConnecting();
+
                     lock++;
-                    AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
+                    if (isConnected)
+                    {
+                        AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed().execute();
+                    }
+                    else
+                    {
+                        Toast toast = Toast.makeText(Main.this, "No connection. Cannot refresh.", Toast.LENGTH_SHORT);
+                        toast.show();
+                        lock = 0;
+                    }
                 }
             }
         });
+
+
+
     }
 
 
@@ -98,10 +153,11 @@ public class Main extends AppCompatActivity {
     --------------------------------------------------------------------------------
     These are general functions outside of the onCreate() method.
     --------------------------------------------------------------------------------
-     */
+    */
 
     //Sets the adapter for the list so that data is actually displayed.
-    //Also sets the SearchView onclick listener
+    //Sets the SearchView onclick listener
+    //Sets the sorting buttons
     public void setListAdapter()
     {
         ListView list = (ListView) findViewById(R.id.list);
@@ -126,11 +182,73 @@ public class Main extends AppCompatActivity {
                 return true;
             }
         });
+
+
+        /*
+        ---------------------------
+        SORTING BUTTONS
+        ---------------------------
+        */
+
+        //-------SORTING BY NAME
+        Button sortByName = (Button) findViewById(R.id.sortName);
+        sortByName.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (sortedByName) {
+                    Collections.sort(Currencies, new BackwardsCurrencyNameCompare());
+                }
+                else
+                {
+                    Collections.sort(Currencies, new CurrencyNameCompare());
+                }
+
+                adapter.notifyDataSetChanged();
+
+                sortedByName = !sortedByName;
+                sortedByPrice = false;
+            }
+        });
+
+        //-------SORTING BY PRICE
+        Button sortByPrice = (Button) findViewById(R.id.sortPrice);
+        sortByPrice.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                if (sortedByPrice) {
+                    Collections.sort(Currencies, new BackwardsCurrencyPriceCompare());
+                }
+                else
+                {
+                    Collections.sort(Currencies, new CurrencyPriceCompare());
+                }
+
+                adapter.notifyDataSetChanged();
+
+                sortedByPrice = !sortedByPrice;
+                sortedByName = false;
+            }
+        });
+
+        Button sortByFavorite = (Button) findViewById(R.id.sortFavorites);
+        sortByFavorite.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                Collections.sort(Currencies, new CurrencyFavoriteCompare());
+                adapter.notifyDataSetChanged();
+
+                sortedByName = false;
+                sortedByPrice = false;
+            }
+        });
     }
+
+
 
     //Starts the horizontal scrolling for the USDT banner
     public void startUSDTBanner()
     {
+        Collections.sort(USDTCurrencies, new CurrencyNameCompare());
         TextView banner = (TextView) findViewById(R.id.USDTBanner);
         StringBuffer bannerStream = new StringBuffer();
         for(Currency c : USDTCurrencies)
@@ -149,6 +267,7 @@ public class Main extends AppCompatActivity {
         int i = 0;
         for(Currency c : Currencies)
         {
+            Log.d(tag, "Saving " + c);
             editor.remove("MarketName_"+i);
             editor.putString("MarketName_"+i, Currencies.get(i).MarketName);
             editor.remove("Last_"+i);
@@ -204,8 +323,6 @@ public class Main extends AppCompatActivity {
             jsonStringBuffer.delete(jsonStringBuffer.lastIndexOf("]"), jsonStringBuffer.lastIndexOf("}")+1);
 
             Gson gsonout = new Gson();
-            //-----------Eventually just prices instead of clearing...
-            //Currencies.clear();
             while(jsonStringBuffer.length()!=0)
             {
                 //If any messages ever contain a open or close curly bracket {}, this will break.
@@ -218,23 +335,30 @@ public class Main extends AppCompatActivity {
                 }
                 if (Currencies.indexOf(c) == -1) //If this isn't in our list of currencies (I.E. a new currency was added)
                 {
-                    Currencies.add(c); //Add the newly parsed JSON object turned into a currency into the list
+                    //Take out the ETH markets
+                    if(!c.MarketName.startsWith("ETH-"))
+                    {
+                        Currencies.add(c); //Add the newly parsed JSON object turned into a currency into the list
+                    }
 
                     if(c.MarketName.startsWith("USDT-")) //Add to separate list for the banner too if it's a USDT market
                     {
                         USDTCurrencies.add(c);
                     }
                 }
-                else //
+                else
                 {
-                    Currencies.get(Currencies.indexOf(c)).Last = c.Last;
+                    //Take out the ETH markets
+                    if(!c.MarketName.startsWith("ETH-"))
+                    {
+                        Currencies.get(Currencies.indexOf(c)).Last = c.Last;
+                    }
                     if(c.MarketName.startsWith("USDT-"))
                     {
                         USDTCurrencies.get(USDTCurrencies.indexOf(c)).Last = c.Last;
                     }
                 }
             }
-
 
             //Updating the ListView
             setListAdapter();

@@ -8,17 +8,20 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Filter;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 
 public class CustomAdapter extends ArrayAdapter<Currency>
 {
     ArrayList<Currency> OrigCurrencies;
     ArrayList<Currency> ShownItems;
+
 
     /*
     --------------------------------------------------------------------------------
@@ -79,7 +82,6 @@ public class CustomAdapter extends ArrayAdapter<Currency>
                     add(ShownItems.get(i));
                     notifyDataSetInvalidated();
                 }
-
             }
         };
     }
@@ -113,6 +115,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
             view.setBackgroundColor(Color.parseColor("#fff69b"));
             int i = 0;
         }
+
 
         /*
         ---------------------------
