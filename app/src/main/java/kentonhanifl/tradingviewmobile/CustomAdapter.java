@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,6 +50,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         return new Filter() {
             @Override
             protected FilterResults performFiltering(CharSequence constraint) {
+                Log.d(Main.tag+"before ", String.valueOf((Main.Currencies.size())));
                 FilterResults resultsReturned = new FilterResults();
                 ArrayList<Currency> results = new ArrayList<Currency>();
                 if(constraint!= null && OrigCurrencies.size()>0 && OrigCurrencies!=null)
@@ -75,13 +77,13 @@ public class CustomAdapter extends ArrayAdapter<Currency>
             @Override
             protected void publishResults(CharSequence charSequence, FilterResults filterResults) {
                 ShownItems = (ArrayList<Currency>) filterResults.values;
-                notifyDataSetChanged();
                 clear();
+                Log.d(Main.tag+"after ", String.valueOf((Main.Currencies.size())));
                 for(int i = 0; i<ShownItems.size(); i++)
                 {
                     add(ShownItems.get(i));
-                    notifyDataSetInvalidated();
                 }
+                notifyDataSetChanged();
             }
         };
     }
@@ -131,7 +133,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         text1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast toast = Toast.makeText(getContext(), name, Toast.LENGTH_SHORT);
+                Toast toast = Toast.makeText(getContext(), "Favorited", Toast.LENGTH_SHORT);
                 toast.show();
                 if (getItem(pos).favorite==true)
                 {
@@ -156,6 +158,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         final String last = String.format("%.8f",getItem(position).Last);
         text2.setText(last); //-------Raises a weird warning...
 
+        /*
         text2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -163,6 +166,16 @@ public class CustomAdapter extends ArrayAdapter<Currency>
                 toast.show();
             }
             });
+            */
+
+        /*
+        ---------------------------
+        Column Three
+        ---------------------------
+        */
+        TextView text3 = (TextView) view.findViewById(R.id.tableCell3);
+        final String change = String.format("%.1f",getItem(position).getChange());
+        text3.setText(change+"%");
 
         return view;
     }
@@ -175,13 +188,21 @@ public class CustomAdapter extends ArrayAdapter<Currency>
 
     public void setFavorite(int position)
     {
-        Main.Currencies.get(position).favorite=true;
+        Currency itm = new Currency();
+        itm = getItem(position);
+        int itmindex = Main.Currencies.indexOf(itm);
+        Main.Currencies.get(itmindex).favorite=true;
+        getItem(position).favorite = true;
         Main.saveCurrencies();
     }
 
     public void unfavorite(int position)
     {
-        Main.Currencies.get(position).favorite=false;
+        Currency itm = new Currency();
+        itm = getItem(position);
+        int itmindex = Main.Currencies.indexOf(itm);
+        Main.Currencies.get(itmindex).favorite=false;
+        getItem(position).favorite = false;
         Main.saveCurrencies();
     }
 }

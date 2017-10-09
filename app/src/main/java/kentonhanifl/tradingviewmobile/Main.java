@@ -35,14 +35,17 @@ import com.google.gson.Gson;
 
 public class Main extends AppCompatActivity {
 
-    static boolean sortedByName = false;
+    static boolean sortedByName = true;
     static boolean sortedByPrice = false;
+    static boolean sortedByChange = false;
 
     static String tag = "DEBUGAROO"; //For debug messages
 
     int lock = 0; //Lock on the refresh button
+
     public static ArrayList<Currency> Currencies = new ArrayList<Currency>();
     public ArrayList<Currency> USDTCurrencies = new ArrayList<Currency>();
+    public static ArrayList<Currency> AdapterCurrencies = new ArrayList<Currency>();
 
     //Filename for shared preferences
     final public String filename = "TradeViewData";
@@ -74,6 +77,7 @@ public class Main extends AppCompatActivity {
             temp.MarketName = data.getString("MarketName_"+i, "ERR1");
             temp.Last = data.getFloat("Last_"+i, 0);
             temp.favorite = data.getBoolean("Favorite_"+i, false);
+            temp.PrevDay = data.getFloat("PrevDay_"+i, 0);
             if (Currencies.indexOf(temp)== -1)
             {
                 Currencies.add(temp);
@@ -83,6 +87,9 @@ public class Main extends AppCompatActivity {
                 }
             }
         }
+        Collections.sort(Currencies, new CurrencyNameCompare());
+        AdapterCurrencies.addAll(Currencies);
+
 
         //See if we're connected to the internet
         //Taken from https://developer.android.com/training/monitoring-device-state/connectivity-monitoring.html#DetermineType
@@ -161,7 +168,7 @@ public class Main extends AppCompatActivity {
     public void setListAdapter()
     {
         ListView list = (ListView) findViewById(R.id.list);
-        final CustomAdapter adapter = new CustomAdapter(Currencies, Main.this);
+        final CustomAdapter adapter = new CustomAdapter(AdapterCurrencies, Main.this);
         list.setAdapter(adapter);
         list.deferNotifyDataSetChanged();
 
@@ -196,17 +203,18 @@ public class Main extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (sortedByName) {
-                    Collections.sort(Currencies, new BackwardsCurrencyNameCompare());
+                    Collections.sort(AdapterCurrencies, new BackwardsCurrencyNameCompare());
                 }
                 else
                 {
-                    Collections.sort(Currencies, new CurrencyNameCompare());
+                    Collections.sort(AdapterCurrencies, new CurrencyNameCompare());
                 }
 
                 adapter.notifyDataSetChanged();
 
                 sortedByName = !sortedByName;
                 sortedByPrice = false;
+                sortedByChange = false;
             }
         });
 
@@ -216,27 +224,51 @@ public class Main extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (sortedByPrice) {
-                    Collections.sort(Currencies, new BackwardsCurrencyPriceCompare());
+                    Collections.sort(AdapterCurrencies, new BackwardsCurrencyPriceCompare());
                 }
                 else
                 {
-                    Collections.sort(Currencies, new CurrencyPriceCompare());
+                    Collections.sort(AdapterCurrencies, new CurrencyPriceCompare());
                 }
 
                 adapter.notifyDataSetChanged();
 
                 sortedByPrice = !sortedByPrice;
                 sortedByName = false;
+                sortedByChange = false;
             }
         });
 
+        //-------SORTING BY FAVORITE
         Button sortByFavorite = (Button) findViewById(R.id.sortFavorites);
         sortByFavorite.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
-                Collections.sort(Currencies, new CurrencyFavoriteCompare());
+                Collections.sort(AdapterCurrencies, new CurrencyFavoriteCompare());
                 adapter.notifyDataSetChanged();
 
+                sortedByName = false;
+                sortedByPrice = false;
+                sortedByChange = false;
+            }
+        });
+
+        //-------SORTING BY CHANGES
+        Button sortByChange = (Button) findViewById(R.id.sortChanges);
+        sortByChange.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                if (sortedByChange) {
+                    Collections.sort(AdapterCurrencies, new BackwardsCurrencyChangeCompare());
+                }
+                else
+                {
+                    Collections.sort(AdapterCurrencies, new CurrencyChangeCompare());
+                }
+
+                adapter.notifyDataSetChanged();
+
+                sortedByChange = !sortedByChange;
                 sortedByName = false;
                 sortedByPrice = false;
             }
@@ -256,6 +288,7 @@ public class Main extends AppCompatActivity {
             bannerStream.append("| " + c.getName() + ":  " + String.format("%.2f", c.Last)+ " |      ");
         }
         banner.setText(bannerStream.toString());
+
         banner.setHorizontallyScrolling(true);
     }
 
@@ -267,17 +300,20 @@ public class Main extends AppCompatActivity {
         int i = 0;
         for(Currency c : Currencies)
         {
-            Log.d(tag, "Saving " + c);
+            //Log.d(tag, "Saving " + c);
             editor.remove("MarketName_"+i);
             editor.putString("MarketName_"+i, Currencies.get(i).MarketName);
             editor.remove("Last_"+i);
             editor.putFloat("Last_"+i, Currencies.get(i).Last);
             editor.remove("Favorite_"+i);
             editor.putBoolean("Favorite_"+i, Currencies.get(i).favorite);
+            editor.remove("PrevDay_"+i);
+            editor.putFloat("PrevDay_"+i, Currencies.get(i).PrevDay);
             i++;
         }
-        editor.commit();
+        editor.apply();
     }
+
 
     /*
     --------------------------------------------------------------------------------
@@ -285,7 +321,6 @@ public class Main extends AppCompatActivity {
     It makes an HTTP request and puts the data from the returned JSON objects into the ArrayList Currencies
     --------------------------------------------------------------------------------
     */
-
     class GetFeed extends AsyncTask<URL, Integer, StringBuffer> {
         @Override
         protected StringBuffer doInBackground(URL... urls) {
@@ -293,6 +328,7 @@ public class Main extends AppCompatActivity {
             //We just put the entire HTTP response into a StringBuffer
             HttpURLConnection connection = null;
             StringBuffer response = null;
+
             try {
                 //-------------Eventually will fetch more, but this is fine for now...
                 URL url = new URL("https://bittrex.com/api/v1.1/public/getmarketsummaries");
@@ -352,6 +388,7 @@ public class Main extends AppCompatActivity {
                     if(!c.MarketName.startsWith("ETH-"))
                     {
                         Currencies.get(Currencies.indexOf(c)).Last = c.Last;
+                        Currencies.get(Currencies.indexOf(c)).PrevDay = c.PrevDay;
                     }
                     if(c.MarketName.startsWith("USDT-"))
                     {
