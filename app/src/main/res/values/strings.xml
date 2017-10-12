@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TradingView Mobile</string>
+    <string name="app_name">CryptoGraph</string>
     <string name="textview">TextView</string>
     <string name="searchHint">Search Coin...</string>
 </resources>

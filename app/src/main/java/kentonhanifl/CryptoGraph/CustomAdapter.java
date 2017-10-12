@@ -1,6 +1,8 @@
-package kentonhanifl.tradingviewmobile;
+package kentonhanifl.CryptoGraph;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -9,19 +11,20 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.Filter;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Collections;
+
 
 
 public class CustomAdapter extends ArrayAdapter<Currency>
 {
     ArrayList<Currency> OrigCurrencies;
     ArrayList<Currency> ShownItems;
+    Context context;
+    SharedPreferences sharedPreferencesData;
 
 
     /*
@@ -30,12 +33,14 @@ public class CustomAdapter extends ArrayAdapter<Currency>
     --------------------------------------------------------------------------------
     */
 
-    public CustomAdapter(ArrayList<Currency> data, Context context) {
+    public CustomAdapter(ArrayList<Currency> data, Context context, SharedPreferences sharedPreferencesData) {
         super(context, R.layout.tablerow, data);
         OrigCurrencies = new ArrayList<Currency>();
         OrigCurrencies.addAll(data);
         ShownItems = new ArrayList<Currency>();
         ShownItems.addAll(data);
+        this.context=context;
+        this.sharedPreferencesData = sharedPreferencesData;
     }
 
     /*
@@ -58,7 +63,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
                     for (Currency currency : OrigCurrencies)
                     {
                         if (currency.getName().toLowerCase()
-                                               .contains(constraint.toString()))
+                                              .contains(constraint.toString()))
                         {
                             results.add(currency);
                         }
@@ -128,22 +133,19 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         TextView text1 = (TextView) view.findViewById(R.id.tableCell1);
         final String name = getItem(position).getName();
         text1.setText(name);
+        text1.setTextColor(Color.parseColor("#3179ed"));
         final int pos = position;
 
         text1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast toast = Toast.makeText(getContext(), "Favorited", Toast.LENGTH_SHORT);
-                toast.show();
-                if (getItem(pos).favorite==true)
-                {
-                    unfavorite(pos);
-                }
-                else
-                {
-                    setFavorite(pos);
-                }
-                notifyDataSetChanged();
+
+                SharedPreferences.Editor editor = sharedPreferencesData.edit();
+                editor.putString("ChartMarketName", getItem(pos).MarketName);
+                editor.commit();
+
+                Intent about = new Intent(context, ChartActivity.class);
+                context.startActivity(about);
 
             }
         });
@@ -158,15 +160,26 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         final String last = String.format("%.8f",getItem(position).Last);
         text2.setText(last); //-------Raises a weird warning...
 
-        /*
+
         text2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast toast = Toast.makeText(getContext(), last, Toast.LENGTH_SHORT);
+                /*
+                Toast toast = Toast.makeText(getContext(), "Favorited", Toast.LENGTH_SHORT);
                 toast.show();
+                */
+                if (getItem(pos).favorite)
+                {
+                    unfavorite(pos);
+                }
+                else
+                {
+                    setFavorite(pos);
+                }
+                notifyDataSetChanged();
             }
             });
-            */
+
 
         /*
         ---------------------------
@@ -176,6 +189,23 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         TextView text3 = (TextView) view.findViewById(R.id.tableCell3);
         final String change = String.format("%.1f",getItem(position).getChange());
         text3.setText(change+"%");
+
+        text3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                /*oast toast = Toast.makeText(getContext(), "Favorited", Toast.LENGTH_SHORT);
+                toast.show();*/
+                if (getItem(pos).favorite)
+                {
+                    unfavorite(pos);
+                }
+                else
+                {
+                    setFavorite(pos);
+                }
+                notifyDataSetChanged();
+            }
+        });
 
         return view;
     }

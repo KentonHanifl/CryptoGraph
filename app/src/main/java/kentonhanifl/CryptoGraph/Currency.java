@@ -1,10 +1,6 @@
-package kentonhanifl.tradingviewmobile;
-
-import android.util.Log;
+package kentonhanifl.CryptoGraph;
 
 import java.util.Comparator;
-
-import static kentonhanifl.tradingviewmobile.Main.tag;
 
 public class Currency
 {
@@ -362,4 +358,30 @@ class BackwardsCurrencyChangeCompare implements Comparator<Currency>
         }
         return 0;
     }
+}
+
+
+class CurrencyChartData
+{
+    public float O;
+    public float C;
+    public float H;
+    public float L;
+    public float V;
+    public String T;
+
+    public String getDateTime()
+    {
+        String returnedDateTime;
+        StringBuffer buffer = new StringBuffer(T);
+        int t = buffer.indexOf("T");
+        buffer.replace(t,t+1," ");
+        int colon = buffer.lastIndexOf(":");
+        buffer.delete(colon,buffer.length());
+        returnedDateTime = buffer.toString();
+        return returnedDateTime;
+    }
+
+    CurrencyChartData() { O = C = H = L = V = 0; }
+
 }

@@ -1,4 +1,4 @@
-package kentonhanifl.tradingviewmobile;
+package kentonhanifl.CryptoGraph;
 
 import org.junit.Test;
 
