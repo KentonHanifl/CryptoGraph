@@ -4,7 +4,6 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.AsyncTask;
-import kentonhanifl.CryptoGraph.GetFeed;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
@@ -17,10 +16,6 @@ import com.github.mikephil.charting.data.CandleEntry;
 import com.github.mikephil.charting.formatter.IAxisValueFormatter;
 import com.google.gson.Gson;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -66,14 +61,22 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
         for (CurrencyChartData data : chartList)
         {
             chartData.add(new CandleEntry(i, data.H, data.L, data.O, data. C));
-            if (i%5==0)
-            {
-                chartLabels.add(data.getDateTime());
-            }
             i++;
+        }
+        for (int j = 0; j < i; j++)
+        {
+            if (j%10==0)
+            {
+                chartLabels.add(chartList.get(j).getDateTime());
+            }
+            else
+            {
+                chartLabels.add("");
+            }
         }
 
         cds = new CandleDataSet(chartData, "");
+
 
         cds.setColor(Color.rgb(80, 80, 80));
         cds.setShadowColor(Color.DKGRAY);
@@ -83,40 +86,31 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
         cds.setIncreasingColor(Color.rgb(122, 242, 84));
         cds.setIncreasingPaintStyle(Paint.Style.FILL);
         cds.setNeutralColor(Color.BLUE);
-        cds.setValueTextColor(Color.RED);
+        //cds.setValueTextColor(Color.RED);
 
         CandleData data = new CandleData(cds);
+
         data.setDrawValues(false);
 
         chart.setData(data);
 
         XAxis xAxis = chart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        //xAxis.setDrawGridLines(false);
-
-        /*
-
+        xAxis.setLabelCount(3);
         xAxis.setValueFormatter(new IAxisValueFormatter() {
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
-                if(value%5f==0f)
-                {
-                    return chartLabels.get((int)value);
-                }
-                return "";
+                return chartLabels.get((int)value);
             }
         });
 
-        */
-
-        chart.setVisibleXRangeMaximum(24);
-        chart.setVisibleXRangeMinimum(8);
+        chart.setVisibleXRangeMinimum(24);
+        chart.setVisibleXRangeMaximum(100);
         chart.getLegend().setEnabled(false);
         chart.getDescription().setEnabled(false);
         chart.getAxisLeft().setEnabled(false);
+        chart.moveViewToX(chartLabels.size());
 
-        //chart.setAutoScaleMinMaxEnabled(true);
-        chart.moveViewToX(i);
 
         chart.invalidate();
     }

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -134,6 +135,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         final String name = getItem(position).getName();
         text1.setText(name);
         text1.setTextColor(Color.parseColor("#3179ed"));
+        text1.setPaintFlags(text1.getPaintFlags()| Paint.UNDERLINE_TEXT_FLAG);
         final int pos = position;
 
         text1.setOnClickListener(new View.OnClickListener() {

@@ -9,6 +9,7 @@ import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
@@ -84,7 +85,6 @@ public class Main extends AppCompatActivity implements AsyncResponse{
             }
         }
         Collections.sort(Currencies, new CurrencyNameCompare());
-        AdapterCurrencies.addAll(Currencies);
 
 
         //See if we're connected to the internet
@@ -159,19 +159,6 @@ public class Main extends AppCompatActivity implements AsyncResponse{
                 }
             }
         });
-
-        Button test = (Button) findViewById(R.id.button);
-        test.setOnClickListener(new View.OnClickListener(){
-
-            @Override
-            public void onClick(View view) {
-                Intent about = new Intent(Main.this, ChartActivity.class);
-                startActivity(about);
-            }
-        });
-
-
-
     }
 
 
@@ -186,6 +173,11 @@ public class Main extends AppCompatActivity implements AsyncResponse{
     //Sets the sorting buttons
     public void setListAdapter()
     {
+        sortedByName = true;
+        sortedByPrice = false;
+        sortedByChange = false;
+        AdapterCurrencies.clear();
+        AdapterCurrencies.addAll(Currencies);
         ListView list = (ListView) findViewById(R.id.list);
         final CustomAdapter adapter = new CustomAdapter(AdapterCurrencies, Main.this, data);
         list.setAdapter(adapter);
