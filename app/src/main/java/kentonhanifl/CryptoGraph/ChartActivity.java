@@ -19,65 +19,104 @@ import com.google.gson.Gson;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Map;
+
 import android.util.Log;
+import android.view.View;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+
+import static kentonhanifl.CryptoGraph.Main.tag;
 
 public class ChartActivity extends AppCompatActivity implements AsyncResponse{
 
+    private ArrayList<CurrencyChartData> chartList = new ArrayList<CurrencyChartData>();
+    private ArrayList<CandleEntry> chartData = new ArrayList<CandleEntry>();
+    private ArrayList<String> chartLabels = new ArrayList<String>();
+    private CandleStickChart chart;
+    private CandleDataSet cds;
+    private static String MarketName;
+    private static String Interval;
 
+    private boolean chartisinvalid;
 
-    ArrayList<CurrencyChartData> chartList = new ArrayList<CurrencyChartData>();
-    ArrayList<CandleEntry> chartData = new ArrayList<CandleEntry>();
-    ArrayList<String> chartLabels = new ArrayList<String>();
-    CandleStickChart chart;
-    CandleDataSet cds;
+    private float maxValue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.chart_activity);
-        SharedPreferences data;
-        data = getSharedPreferences(Main.filename, 0);
-        String MarketName = data.getString("ChartMarketName", "USDT-BTC");
-        String interval = "hour";
+        Database database = Main.database;
+        MarketName = database.getMarketName();
+        //Current default interval
+        Interval = "day";
 
-        //Get Market History Chart
+        TextView ChartTitle = (TextView) findViewById(R.id.chartTitle);
+        ChartTitle.setText(MarketName);
+
+        chart = (CandleStickChart) findViewById(R.id.chart);
+
+        //Get initial Market History Chart
+        getChartData(MarketName, Interval);
+    }
+    public void onRadioButtonClicked(View view) {
+        boolean checked = ((RadioButton) view).isChecked();
+
+        // Check which radio button was clicked
+        switch (view.getId()) {
+            case R.id.dayButton:
+                if (checked)
+                {
+                    Interval = "day";
+                    getChartData(MarketName, Interval);
+                }
+                break;
+
+            case R.id.hourButton:
+                if (checked)
+                {
+                    Interval = "hour";
+                    getChartData(MarketName, Interval);
+                }
+                break;
+
+            case R.id.thirtyMin:
+                if (checked)
+                {
+                    Interval = "thirtyMin";
+                    getChartData(MarketName, Interval);
+                }
+                break;
+        }
+    }
+
+    void getChartData(String MarketName, String interval)
+    {
+        //MOVETOGENERAL
         try
         {
-            //https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-1ST&tickInterval=hour
             URL marketHistoryURL = new URL("https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName="+MarketName+"&tickInterval="+interval);
-            chart = (CandleStickChart) findViewById(R.id.chart);
             AsyncTask<URL, Integer, StringBuffer> feed = new GetFeed(this).execute(marketHistoryURL);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
-
-
     }
 
-    //Poorly Wirtten-- Come Back
     void drawChart()
     {
-        int i = 0;
+        float i = 0;
         for (CurrencyChartData data : chartList)
         {
-            chartData.add(new CandleEntry(i, data.H, data.L, data.O, data. C));
+            chartData.add(new CandleEntry(i, data.H, data.L, data.O, data.C));
+            chartLabels.add(data.getDateTime());
             i++;
         }
-        for (int j = 0; j < i; j++)
-        {
-            if (j%10==0)
-            {
-                chartLabels.add(chartList.get(j).getDateTime());
-            }
-            else
-            {
-                chartLabels.add("");
-            }
-        }
+        i=0;
 
         cds = new CandleDataSet(chartData, "");
 
-
+        //Formatting the chart's colors
         cds.setColor(Color.rgb(80, 80, 80));
         cds.setShadowColor(Color.DKGRAY);
         cds.setShadowWidth(0.7f);
@@ -86,37 +125,89 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
         cds.setIncreasingColor(Color.rgb(122, 242, 84));
         cds.setIncreasingPaintStyle(Paint.Style.FILL);
         cds.setNeutralColor(Color.BLUE);
-        //cds.setValueTextColor(Color.RED);
 
         CandleData data = new CandleData(cds);
 
+        //Don't draw labels on the candlesticks themselves
         data.setDrawValues(false);
 
+        //Binding the data to the chart
         chart.setData(data);
 
+        //Refresh the chart
+        chart.notifyDataSetChanged();
+        chart.invalidate();
+
+        //Set the xAxis position
         XAxis xAxis = chart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setLabelCount(3);
+        xAxis.setAvoidFirstLastClipping(true);
+
+
+        //This is used to control the amount of labels on the actual screen at one time. 3 is a number chosen arbitrarily, but 4 did not look good at all.
+        xAxis.setLabelCount(3, true);
+
+        //This sets the actual labels on the x-axis
+        maxValue=chartLabels.size()-1;
+
         xAxis.setValueFormatter(new IAxisValueFormatter() {
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
+                //--------------------BUG--------------------
+                //There is a weird error where it throws values past the last label for some reason.
+                //This is filtering for those bad throws so the app doesn't crash.
+                //Pretty sure it has to do with the chart.moveToX() call down below, but I can't figure out why it only does it sometimes.
+                //This is a temporary solution that will most likely become a permanent one unfortunately.
+                if (chartisinvalid||chartLabels.size()==0)
+                {
+                    return "";
+                }
+                if (maxValue<value)
+                {
+                    return chartLabels.get((int)maxValue);
+                }
                 return chartLabels.get((int)value);
             }
         });
 
-        chart.setVisibleXRangeMinimum(24);
-        chart.setVisibleXRangeMaximum(100);
+        chartisinvalid=false;
+
+        //Legend, description, and the left y axis are all unnecessary.
         chart.getLegend().setEnabled(false);
         chart.getDescription().setEnabled(false);
         chart.getAxisLeft().setEnabled(false);
-        chart.moveViewToX(chartLabels.size());
+
+        //Auto scales the chart when scrolled to left or right
+        //chart.setAutoScaleMinMaxEnabled(true);
 
 
-        chart.invalidate();
+
+        //These numbers too are chosen at random
+        float minrange=6;
+        float maxrange=100;
+
+        //Pretty sure this is broken and related to the bug mentioned above.
+        //The bug is that on the chart loading up, the chart will be focused a little after the last data point.
+        //Doesn't really affect the app too bad and is fixed as soon as the user scrolls.
+        chart.moveViewToX(chartLabels.size()-maxrange-1);
+        chart.setVisibleXRangeMinimum(minrange);
+        chart.setVisibleXRangeMaximum(maxrange);
+
     }
 
     @Override
     public void processFinish(StringBuffer jsonStringBuffer) {
+        if (!chart.isEmpty())
+        {
+            chartisinvalid=true;
+            chart.clearValues();
+            chart.clear();
+            chartData.clear();
+            chartLabels.clear();
+            chartList.clear();
+
+        }
+
         //Using Gson to parse the JSON object after cleaning it up.
         //I.E. the HTTP response comes with a bunch of useless stuff before the objects we want.
         jsonStringBuffer.delete(0, jsonStringBuffer.indexOf("[") + 1); //Do note, if the optional message field ever comes with an open or close bracket [], this will break.
@@ -129,12 +220,14 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
             CurrencyChartData data = gsonout.fromJson(json, CurrencyChartData.class); //Gson parses the object and puts all of the data into a chart data
             jsonStringBuffer.delete(0, jsonStringBuffer.indexOf("}") + 1); //Delete the JSON object we just parsed from the StringBuffer to get the next one
             chartList.add(data);
+            Log.d(tag, data.getDateTime() + " " +String.format("%.2f", data.C));
             if(jsonStringBuffer.length()!=0)
             {
                 jsonStringBuffer.delete(0,1); //Delete the comma between each object
             }
         }
 
+        //Draw the chart once we're done building up the data
         drawChart();
     }
 }

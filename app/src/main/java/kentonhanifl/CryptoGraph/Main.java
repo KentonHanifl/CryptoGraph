@@ -1,15 +1,12 @@
 package kentonhanifl.CryptoGraph;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
@@ -31,22 +28,19 @@ import com.google.gson.Gson;
 
 public class Main extends AppCompatActivity implements AsyncResponse{
 
-    static boolean sortedByName = true;
-    static boolean sortedByPrice = false;
-    static boolean sortedByChange = false;
+    private boolean sortedByName = true;
+    private boolean sortedByPrice = false;
+    private boolean sortedByChange = false;
 
-    static String tag = "DEBUGAROO"; //For debug messages
+    public static String tag = "kk"; //For debug messages to logcat
 
-    int lock = 0; //Lock on the refresh button
+    private int lock = 0; //Lock on the refresh button
 
     public static ArrayList<Currency> Currencies = new ArrayList<Currency>();
-    public ArrayList<Currency> USDTCurrencies = new ArrayList<Currency>();
+    private ArrayList<Currency> BannerCurrencies = new ArrayList<Currency>();
     public static ArrayList<Currency> AdapterCurrencies = new ArrayList<Currency>();
 
-    //Filename for shared preferences
-    final static public String filename = "TradeViewData";
-    static SharedPreferences data;
-    int dataSize;
+    public static Database database;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -54,41 +48,22 @@ public class Main extends AppCompatActivity implements AsyncResponse{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        /*
-        Cheap way to get/put an array with shared preferences. Found the implementation at https://stackoverflow.com/questions/7057845/save-arraylist-to-sharedpreferences (The second answer as of 9/23/17)
-        Each iteration grabs the data members for each coin and adds it to Currencies
-        ORDER:
-        MarketName
-        Last
-        favorite
-        PrevDay
-        */
-
-        data = getSharedPreferences(filename, 0);
-        dataSize = data.getInt("SIZE", 0);
-
-        Currency temp;
-        for(int i = 0; i < dataSize; i++)
-        {
-            temp = new Currency();
-            temp.MarketName = data.getString("MarketName_"+i, "ERR1");
-            temp.Last = data.getFloat("Last_"+i, 0);
-            temp.favorite = data.getBoolean("Favorite_"+i, false);
-            temp.PrevDay = data.getFloat("PrevDay_"+i, 0);
-            if (Currencies.indexOf(temp)== -1)
-            {
-                Currencies.add(temp);
-                if(temp.MarketName.startsWith("USDT-"))
-                {
-                    USDTCurrencies.add(temp);
-                }
+        database = new Database(getSharedPreferences("TradeViewData", 0));
+        //Load the database (currently loading the USDT markets into the banner)
+        database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>(){
+            @Override
+            boolean test(Currency currency) {
+                return currency.MarketName.startsWith("USDT-");
             }
-        }
+        });
+
+
         Collections.sort(Currencies, new CurrencyNameCompare());
 
 
         //See if we're connected to the internet
         //Taken from https://developer.android.com/training/monitoring-device-state/connectivity-monitoring.html#DetermineType
+        //MOVETONETWORK
         ConnectivityManager cm =
                 (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -97,6 +72,7 @@ public class Main extends AppCompatActivity implements AsyncResponse{
                                     activeNetwork.isConnectedOrConnecting();
 
         //If we are connected, try to get the feed for the markets.
+        //MOVETONETWORK?
         if (isConnected)
         {
             try
@@ -111,13 +87,13 @@ public class Main extends AppCompatActivity implements AsyncResponse{
         {
             Toast toast = Toast.makeText(this, "No internet connection. Loading data if available.", Toast.LENGTH_SHORT);
             toast.show();
-            if (dataSize != 0)
+            if (database.getDataSize() != 0)
             {
                 //Updating the ListView
                 setListAdapter();
 
-                //Start the scrolling banner for USDT prices
-                startUSDTBanner();
+                //Start the scrolling banner
+                startBanner();
             }
 
         }
@@ -131,6 +107,7 @@ public class Main extends AppCompatActivity implements AsyncResponse{
 
                 if(lock==0 && tableSearchBar.isIconified()) //There were bugs letting the user refresh while the SearchView was pressed, so I just disable it here.
                 {
+                    //MOVETONETWORK
                     ConnectivityManager cm = (ConnectivityManager)
                                                 Main.this.getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -142,6 +119,7 @@ public class Main extends AppCompatActivity implements AsyncResponse{
                     lock++;
                     if (isConnected)
                     {
+                        //MOVETOGENERAL
                         try
                         {
                             AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed(Main.this)
@@ -162,12 +140,8 @@ public class Main extends AppCompatActivity implements AsyncResponse{
     }
 
 
-    /*
-    --------------------------------------------------------------------------------
-    These are general functions outside of the onCreate() method.
-    --------------------------------------------------------------------------------
-    */
-
+    //MOVETOGRAPHICS
+    //DECOUPLE THE BUTTONS FROM THE ARRAY ADAPTER
     //Sets the adapter for the list so that data is actually displayed.
     //Sets the SearchView onclick listener
     //Sets the sorting buttons
@@ -179,7 +153,7 @@ public class Main extends AppCompatActivity implements AsyncResponse{
         AdapterCurrencies.clear();
         AdapterCurrencies.addAll(Currencies);
         ListView list = (ListView) findViewById(R.id.list);
-        final CustomAdapter adapter = new CustomAdapter(AdapterCurrencies, Main.this, data);
+        final CustomAdapter adapter = new CustomAdapter(AdapterCurrencies, Main.this);
         list.setAdapter(adapter);
         list.deferNotifyDataSetChanged();
 
@@ -207,7 +181,6 @@ public class Main extends AppCompatActivity implements AsyncResponse{
         SORTING BUTTONS
         ---------------------------
         */
-
         //-------SORTING BY NAME
         Button sortByName = (Button) findViewById(R.id.sortName);
         sortByName.setOnClickListener(new View.OnClickListener() {
@@ -288,13 +261,14 @@ public class Main extends AppCompatActivity implements AsyncResponse{
 
 
 
-    //Starts the horizontal scrolling for the USDT banner
-    public void startUSDTBanner()
+    //Starts the horizontal scrolling for the banner
+    //MOVETOGRAPHICS
+    public void startBanner()
     {
-        Collections.sort(USDTCurrencies, new CurrencyNameCompare());
-        TextView banner = (TextView) findViewById(R.id.USDTBanner);
-        StringBuffer bannerStream = new StringBuffer();
-        for(Currency c : USDTCurrencies)
+        Collections.sort(BannerCurrencies, new CurrencyNameCompare());
+        TextView banner = (TextView) findViewById(R.id.Banner);
+        StringBuilder bannerStream = new StringBuilder();
+        for(Currency c : BannerCurrencies)
         {
             bannerStream.append("| " + c.getName() + ":  " + String.format("%.2f", c.Last)+ " |      ");
         }
@@ -304,27 +278,12 @@ public class Main extends AppCompatActivity implements AsyncResponse{
     }
 
     //Should be called whenever data is changed in any way. Currently just saves EVERYTHING to shared preferences.
+    //Only used by CustomAdapter, but CustomAdapter should not have access to the main list of currencies.
+    //This will be changed when the favoriting logic is moved out of the CustomAdapter
     public static void saveCurrencies()
     {
-        SharedPreferences.Editor editor = data.edit();
-        editor.putInt("SIZE", Currencies.size());
-        int i = 0;
-        for(Currency c : Currencies)
-        {
-            editor.remove("MarketName_"+i);
-            editor.putString("MarketName_"+i, Currencies.get(i).MarketName);
-            editor.remove("Last_"+i);
-            editor.putFloat("Last_"+i, Currencies.get(i).Last);
-            editor.remove("Favorite_"+i);
-            editor.putBoolean("Favorite_"+i, Currencies.get(i).favorite);
-            editor.remove("PrevDay_"+i);
-            editor.putFloat("PrevDay_"+i, Currencies.get(i).PrevDay);
-            i++;
-        }
-        editor.apply();
+        database.save(Currencies);
     }
-
-
 
     /*
     Handling the AsyncTask data
@@ -358,7 +317,7 @@ public class Main extends AppCompatActivity implements AsyncResponse{
 
                 if(c.MarketName.startsWith("USDT-")) //Add to separate list for the banner too if it's a USDT market
                 {
-                    USDTCurrencies.add(c);
+                    BannerCurrencies.add(c);
                 }
             }
             else
@@ -371,7 +330,7 @@ public class Main extends AppCompatActivity implements AsyncResponse{
                 }
                 if(c.MarketName.startsWith("USDT-"))
                 {
-                    USDTCurrencies.get(USDTCurrencies.indexOf(c)).Last = c.Last;
+                    BannerCurrencies.get(BannerCurrencies.indexOf(c)).Last = c.Last;
                 }
             }
         }
@@ -379,8 +338,8 @@ public class Main extends AppCompatActivity implements AsyncResponse{
         //Updating the ListView
         setListAdapter();
 
-        //Start the scrolling banner for USDT prices
-        startUSDTBanner();
+        //Start the scrolling banner
+        startBanner();
 
         //Save array in shared preferences
         saveCurrencies();

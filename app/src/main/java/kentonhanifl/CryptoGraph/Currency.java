@@ -382,6 +382,9 @@ class CurrencyChartData
         return returnedDateTime;
     }
 
-    CurrencyChartData() { O = C = H = L = V = 0; }
+    CurrencyChartData() {
+        O = C = H = L = V = 0;
+        T="";
+    }
 
 }
