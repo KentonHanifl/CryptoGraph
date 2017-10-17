@@ -144,6 +144,7 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
         xAxis.setAvoidFirstLastClipping(true);
 
 
+
         //This is used to control the amount of labels on the actual screen at one time. 3 is a number chosen arbitrarily, but 4 did not look good at all.
         xAxis.setLabelCount(3, true);
 
