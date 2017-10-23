@@ -36,19 +36,16 @@ public class Currency
         else return MarketName;
     }
 
+    //unit testable
     public Float getChange()
     {
-        /*
-        Log.d(tag, getName());
-        Log.d(tag, String.format("%.8f",Last));
-        Log.d(tag, String.format("%.8f",PrevDay));
-        */
         return(Last/PrevDay - 1)*(float)100.00;
     }
 
 
     //Overridden for checking if currencies are apart of the Currencies ArrayList in main
     //I define equivalency as "The market name is the same"
+    //unit testable
     @Override
     public boolean equals(Object o) {
         Currency currency = (Currency) o;
@@ -254,11 +251,20 @@ class CurrencyFavoriteCompare implements Comparator<Currency>
     @Override
     public int compare(Currency lhs, Currency rhs) {
 
+        //If both are favorited, do a CurrencyNameCompare.
         if (lhs.favorite && rhs.favorite)
         {
-            return lhs.getName().compareToIgnoreCase(rhs.getName());
+            CurrencyNameCompare Compare = new CurrencyNameCompare();
+            return Compare.compare(lhs,rhs);
+        }
+        //If neither are favorited, do a CurrencyNameCompare.
+        else if (!lhs.favorite && !rhs.favorite)
+        {
+            CurrencyNameCompare Compare = new CurrencyNameCompare();
+            return Compare.compare(lhs,rhs);
         }
 
+        //If one is favorited and one isn't, compare by that.
         else if (lhs.favorite && !rhs.favorite)
         {
             return -1;
@@ -267,11 +273,6 @@ class CurrencyFavoriteCompare implements Comparator<Currency>
         else if (!lhs.favorite && rhs.favorite)
         {
             return 1;
-        }
-
-        else if (!lhs.favorite && !rhs.favorite)
-        {
-            return lhs.getName().compareToIgnoreCase(rhs.getName());
         }
 
         return 0;

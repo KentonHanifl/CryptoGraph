@@ -26,6 +26,7 @@ import android.view.View;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import static kentonhanifl.CryptoGraph.Main.tag;
 
@@ -57,9 +58,17 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
 
         chart = (CandleStickChart) findViewById(R.id.chart);
 
-        //Get initial Market History Chart
-        getChartData(MarketName, Interval);
+        //Get Market History Chart
+        boolean isConnected = Network.isConnected(this);
+        if (isConnected) {
+            getChartData(MarketName, Interval);
+        }
+        else {
+            Toast toast = Toast.makeText(this, "No connection. Cannot load chart.", Toast.LENGTH_SHORT);
+            toast.show();
+        }
     }
+
     public void onRadioButtonClicked(View view) {
         boolean checked = ((RadioButton) view).isChecked();
 
@@ -93,7 +102,7 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
 
     void getChartData(String MarketName, String interval)
     {
-        //MOVETOGENERAL
+        //MOVETONETWORK?
         try
         {
             URL marketHistoryURL = new URL("https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName="+MarketName+"&tickInterval="+interval);
@@ -131,6 +140,9 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
         //Don't draw labels on the candlesticks themselves
         data.setDrawValues(false);
 
+        //CHANGE THIS
+        data.setHighlightEnabled(false);
+
         //Binding the data to the chart
         chart.setData(data);
 
@@ -142,8 +154,6 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
         XAxis xAxis = chart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setAvoidFirstLastClipping(true);
-
-
 
         //This is used to control the amount of labels on the actual screen at one time. 3 is a number chosen arbitrarily, but 4 did not look good at all.
         xAxis.setLabelCount(3, true);
@@ -183,7 +193,7 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse{
 
 
 
-        //These numbers too are chosen at random
+        //These numbers too are chosen arbitrarily
         float minrange=6;
         float maxrange=100;
 

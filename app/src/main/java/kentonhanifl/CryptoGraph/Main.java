@@ -62,14 +62,7 @@ public class Main extends AppCompatActivity implements AsyncResponse{
 
 
         //See if we're connected to the internet
-        //Taken from https://developer.android.com/training/monitoring-device-state/connectivity-monitoring.html#DetermineType
-        //MOVETONETWORK
-        ConnectivityManager cm =
-                (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        final boolean isConnected = activeNetwork != null &&
-                                    activeNetwork.isConnectedOrConnecting();
+        boolean isConnected = Network.isConnected(this);
 
         //If we are connected, try to get the feed for the markets.
         //MOVETONETWORK?
@@ -107,19 +100,12 @@ public class Main extends AppCompatActivity implements AsyncResponse{
 
                 if(lock==0 && tableSearchBar.isIconified()) //There were bugs letting the user refresh while the SearchView was pressed, so I just disable it here.
                 {
-                    //MOVETONETWORK
-                    ConnectivityManager cm = (ConnectivityManager)
-                                                Main.this.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-                    //Check if we have network activity before trying to fetch data
-                    NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-                    final boolean isConnected = activeNetwork != null &&
-                                                activeNetwork.isConnectedOrConnecting();
+                    boolean isConnected = Network.isConnected(Main.this);
 
                     lock++;
                     if (isConnected)
                     {
-                        //MOVETOGENERAL
+                        //MOVETONETWORK?
                         try
                         {
                             AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed(Main.this)
@@ -286,8 +272,10 @@ public class Main extends AppCompatActivity implements AsyncResponse{
     }
 
     /*
+    --------------------------------------------------------------------------------
     Handling the AsyncTask data
     Builds up the list of currencies from the returned JSON objects
+    --------------------------------------------------------------------------------
     */
     @Override
     public void processFinish(StringBuffer jsonStringBuffer) {

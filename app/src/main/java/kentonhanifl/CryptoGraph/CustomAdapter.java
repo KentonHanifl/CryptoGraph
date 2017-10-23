@@ -204,7 +204,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
     /*
     --------------------------------------------------------------------------------
     General functions not related to setting the view or filtering data
-    MOVETOGENERAL
+    Consider moving somewhere else
     --------------------------------------------------------------------------------
     */
 
