@@ -210,7 +210,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
 
     public void setFavorite(int position)
     {
-        Currency itm = new Currency();
+        Currency itm;
         itm = getItem(position);
         int itmindex = Main.Currencies.indexOf(itm);
         Main.Currencies.get(itmindex).favorite=true;
@@ -220,7 +220,7 @@ public class CustomAdapter extends ArrayAdapter<Currency>
 
     public void unfavorite(int position)
     {
-        Currency itm = new Currency();
+        Currency itm;
         itm = getItem(position);
         int itmindex = Main.Currencies.indexOf(itm);
         Main.Currencies.get(itmindex).favorite=false;

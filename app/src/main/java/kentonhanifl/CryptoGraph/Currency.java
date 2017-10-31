@@ -373,6 +373,10 @@ class CurrencyChartData
 
     public String getDateTime()
     {
+        if (T.equals(""))
+        {
+            return "";
+        }
         String returnedDateTime;
         StringBuffer buffer = new StringBuffer(T);
         int t = buffer.indexOf("T");
