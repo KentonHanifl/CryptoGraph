@@ -29,9 +29,10 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     private boolean sortedByPrice = false;
     private boolean sortedByChange = false;
 
+
     public static String tag = "kk"; //For debug messages to logcat
 
-    private int lock = 0; //Lock on the refresh button
+    private boolean lock = false; //Lock on the refresh button
 
     public static ArrayList<Currency> Currencies = new ArrayList<Currency>();
     private ArrayList<Currency> BannerCurrencies = new ArrayList<Currency>();
@@ -86,9 +87,8 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
             }
         }
 
-        /*
-        Set up all of the buttons and searchview
-        */
+        //Set up all of the buttons and searchview
+
         Button refresh = (Button) findViewById(R.id.refresh);
         refresh.setOnClickListener(this);
 
@@ -128,6 +128,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
             }
 
         }catch(NullPointerException e){
+            //If we did not get data, or did not get good data, load from the database.
             Toast toast = Toast.makeText(Main.this, "Did not receive data from Bittrex.", Toast.LENGTH_SHORT);
             toast.show();
             database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>(){
@@ -146,7 +147,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
             //Save array in shared preferences
             saveCurrencies();
 
-            lock = 0; //Reset the lock on the refresh button
+            lock = false; //Reset the lock on the refresh button
         }
     }
 
@@ -208,19 +209,31 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
                 break;
 
             case R.id.sortName:
-                sortNameButtonAction();
+                if (!isSortButtonLock())
+                {
+                    sortNameButtonAction();
+                }
                 break;
 
             case R.id.sortPrice:
-                sortPriceButtonAction();
+                if (!isSortButtonLock())
+                {
+                    sortPriceButtonAction();
+                }
                 break;
 
             case R.id.sortChanges:
-                sortChangesButtonAction();
+                if (!isSortButtonLock())
+                {
+                    sortChangesButtonAction();
+                }
                 break;
 
             case R.id.sortFavorites:
-                sortFavoritesButtonAction();
+                if (!isSortButtonLock())
+                {
+                    sortFavoritesButtonAction();
+                }
                 break;
 
         }
@@ -230,11 +243,11 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     private void refreshButtonAction() {
         SearchView tableSearchBar = (SearchView) findViewById(R.id.tableSearchBar);
 
-        if(lock==0 && tableSearchBar.isIconified()) //There were bugs letting the user refresh while the SearchView was pressed, so I just disable it here.
+        if(!lock && tableSearchBar.isIconified()) //There were bugs letting the user refresh while the SearchView was pressed, so I just disable it here.
         {
             boolean isConnected = Network.isConnected(Main.this);
 
-            lock++;
+            lock = true;
             if (isConnected)
             {
                 try
@@ -249,7 +262,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
             {
                 Toast toast = Toast.makeText(Main.this, "No connection. Cannot refresh.", Toast.LENGTH_SHORT);
                 toast.show();
-                lock = 0;
+                lock = false;
             }
         }
     }
@@ -311,10 +324,19 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
         sortedByChange = false;
     }
 
+    private boolean isSortButtonLock()
+    {
+        if (AdapterCurrencies.size()!=0)
+        {
+            return false;
+        }
+        return true;
+    }
+
     /*
     --------------------------------------------------------------------------------
     SEARCH BAR
-    The onQuery actions
+    The onQuery action
     --------------------------------------------------------------------------------
     */
 

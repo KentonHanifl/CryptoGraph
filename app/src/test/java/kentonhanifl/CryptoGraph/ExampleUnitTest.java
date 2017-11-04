@@ -1,6 +1,7 @@
 package kentonhanifl.CryptoGraph;
 
 import org.junit.Test;
+import org.mockito.*;
 
 import static org.junit.Assert.*;
 

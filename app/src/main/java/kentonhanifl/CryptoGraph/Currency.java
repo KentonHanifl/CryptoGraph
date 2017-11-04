@@ -369,6 +369,7 @@ class CurrencyChartData
     public float H;
     public float L;
     public float V;
+    public float BV;
     public String T;
 
     public String getDateTime()
@@ -388,7 +389,7 @@ class CurrencyChartData
     }
 
     CurrencyChartData() {
-        O = C = H = L = V = 0;
+        O = C = H = L = V = BV = 0;
         T="";
     }
 
