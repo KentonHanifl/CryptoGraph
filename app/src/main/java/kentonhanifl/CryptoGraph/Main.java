@@ -458,6 +458,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
             }
         });
 
+
         if(!bannerRunning) {
             startBanner();
         }

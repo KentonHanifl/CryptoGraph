@@ -126,6 +126,7 @@ public class CryptoGraphUpdaterService extends Service implements AsyncResponse 
     @Override
     public void processFinish(StringBuffer jsonStringBuffer) {
         try {
+            Log.d(tag, "PF");
             database = new Database(getSharedPreferences("TradeViewData", 0));
             database.loadOnlyCurrencies(Currencies);
 
@@ -196,6 +197,7 @@ public class CryptoGraphUpdaterService extends Service implements AsyncResponse 
         //Log.d(tag, "ENTERpushCurrencies()");
         if(serviceCallbacks!=null)
         {
+            Log.d(tag, "push");
             //Log.d(tag, "LEAVEpushCurrencies()");
             serviceCallbacks.update();
         }

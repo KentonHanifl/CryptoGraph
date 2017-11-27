@@ -25,18 +25,18 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
 
         SharedPreferences.Editor editor = database.edit();
         if(database.contains(c.getName())) {
-            Log.d(tag,"if");
+            //Log.d(tag,"if");
             editor.putInt(c.getName(),(database.getInt(c.getName(), 0)+delay));
             editor.commit();
             if(database.getInt(c.getName(),0)>3600)
             {
-                editor.remove(c.getName());
+                editor.putInt(c.getName(),0);
                 editor.commit();
                 return true;
             }
         }
         else{
-            Log.d(tag, "else");
+            //Log.d(tag, "else");
             editor.putInt(c.getName(),0);
             editor.commit();
             return true;

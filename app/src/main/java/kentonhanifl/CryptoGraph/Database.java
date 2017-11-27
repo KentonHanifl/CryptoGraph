@@ -26,7 +26,7 @@ public class Database{
 
     public void loadDatabase(ArrayList<Currency> Currencies, ArrayList<Currency> BannerCurrencies, BannerCondition<Currency> condition)
     {
-
+        dataSize = data.getInt("SIZE", 0);
         Currency temp;
         for(int i = 0; i < dataSize; i++) {
             temp = new Currency();
