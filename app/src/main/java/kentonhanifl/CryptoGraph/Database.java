@@ -2,8 +2,11 @@ package kentonhanifl.CryptoGraph;
 
 import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import java.util.ArrayList;
+
+import static kentonhanifl.CryptoGraph.Main.tag;
 
 public class Database{
 
@@ -37,8 +40,49 @@ public class Database{
                     BannerCurrencies.add(temp);
                 }
             }
+            else
+            {
+                if (!temp.MarketName.startsWith("ETH-")) { //Take out the ETH markets
+                    Currencies.get(Currencies.indexOf(temp)).Last = temp.Last;
+                    Currencies.get(Currencies.indexOf(temp)).PrevDay = temp.PrevDay;
+                    Currencies.get(Currencies.indexOf(temp)).favorite = temp.favorite;
+                }
+            }
+            if (BannerCurrencies.indexOf(temp)== -1)
+            {
+                if (condition.test(temp)){
+                    BannerCurrencies.add(temp);
+                }
+            }
+            else
+            {
+                if (temp.MarketName.startsWith("USDT-")) {
+                    BannerCurrencies.get(BannerCurrencies.indexOf(temp)).Last = temp.Last;
+                }
+            }
         }
     }
+
+    public void loadOnlyCurrencies(ArrayList<Currency> Currencies) {
+        Currency temp;
+        for (int i = 0; i < dataSize; i++) {
+            temp = new Currency();
+            temp.MarketName = data.getString("MarketName_" + i, "ERR1");
+            temp.Last = data.getFloat("Last_" + i, 0);
+            temp.favorite = data.getBoolean("Favorite_" + i, false);
+            temp.PrevDay = data.getFloat("PrevDay_" + i, 0);
+            if (Currencies.indexOf(temp) == -1) {
+                Currencies.add(temp);
+            } else {
+                if (!temp.MarketName.startsWith("ETH-")) { //Take out the ETH markets
+                    Currencies.get(Currencies.indexOf(temp)).Last = temp.Last;
+                    Currencies.get(Currencies.indexOf(temp)).PrevDay = temp.PrevDay;
+                    Currencies.get(Currencies.indexOf(temp)).favorite = temp.favorite;
+                }
+            }
+        }
+    }
+
 
     public void save(ArrayList<Currency> Currencies)
     {

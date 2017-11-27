@@ -1,9 +1,24 @@
 package kentonhanifl.CryptoGraph;
 
+import android.app.ActivityManager;
+import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Build;
+import android.os.IBinder;
+import android.os.SystemClock;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import android.support.v7.app.NotificationCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
@@ -16,6 +31,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 
 import com.google.gson.Gson;
@@ -23,12 +39,10 @@ import com.google.gson.Gson;
 //ERROR CODES
 //ERR1: Error loading currency. Clear app data and start again.
 
-public class Main extends AppCompatActivity implements AsyncResponse, View.OnClickListener, SearchView.OnQueryTextListener{
-
+public class Main extends AppCompatActivity implements AsyncResponse, View.OnClickListener, SearchView.OnQueryTextListener, LiveUpdaterCallbacks {
     private boolean sortedByName = true;
     private boolean sortedByPrice = false;
     private boolean sortedByChange = false;
-
 
     public static String tag = "kk"; //For debug messages to logcat
 
@@ -42,16 +56,36 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
 
     public static Database database;
 
+    private PendingIntent pendingIntent;
+
+    private boolean bound = false;
+    private boolean bannerRunning = false;
+    private boolean listAdapterSet = false;
+    Intent updaterIntent;
+    private CryptoGraphUpdaterService updaterService;
+
+    Context ctx;
+
+    public Context getCtx() {
+        return ctx;
+    }
+
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ctx = this;
         setContentView(R.layout.activity_main);
+
+        updaterService = new CryptoGraphUpdaterService((getCtx()));
+        updaterIntent = new Intent(getCtx(), updaterService.getClass());
+        if (!isMyServiceRunning(updaterService.getClass())) {
+            startService(updaterIntent);
+        }
 
         //Load the database
         database = new Database(getSharedPreferences("TradeViewData", 0));
         //Load the database (currently loading the USDT markets into the banner)
-        database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>(){
+        database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>() {
             @Override
             boolean test(Currency currency) {
                 return currency.MarketName.startsWith("USDT-");
@@ -61,24 +95,27 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
         //Have the list be sorted by name initially
         Collections.sort(Currencies, new CurrencyNameCompare());
 
-        //If we are connected, try to get the feed for the markets.
-        if (Network.isConnected(this))
+        if(Currencies.size()!=0)
         {
-            try
-            {
+            startBanner();
+            setListAdapter();
+        }
+
+
+/*
+        //If we are connected, try to get the feed for the markets.
+        if (Network.isConnected(this)) {
+            try {
                 AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed(this)
-                                                                    .execute(new URL("https://bittrex.com/api/v1.1/public/getmarketsummaries"));
+                        .execute(new URL("https://bittrex.com/api/v1.1/public/getmarketsummaries"));
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             }
-        }
-        else
-        {
+        } else {
             Toast toast = Toast.makeText(this, "No internet connection. Loading data if available.", Toast.LENGTH_SHORT);
             toast.show();
             //If we have data loaded:
-            if (database.getDataSize() != 0)
-            {
+            if (database.getDataSize() != 0) {
                 //Updating the ListView
                 setListAdapter();
 
@@ -86,11 +123,11 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
                 startBanner();
             }
         }
-
+*/
         //Set up all of the buttons and searchview
 
-        Button refresh = (Button) findViewById(R.id.refresh);
-        refresh.setOnClickListener(this);
+        //Button refresh = (Button) findViewById(R.id.refresh);
+        //refresh.setOnClickListener(this);
 
         Button sortName = (Button) findViewById(R.id.sortName);
         sortName.setOnClickListener(this);
@@ -115,7 +152,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     --------------------------------------------------------------------------------
     */
     @Override
-    public void processFinish(StringBuffer jsonStringBuffer){
+    public void processFinish(StringBuffer jsonStringBuffer) {
         try {
             //The HTTP response comes with a bunch of useless stuff before the objects we want. Clean it up.
             jsonStringBuffer.delete(0, jsonStringBuffer.indexOf("[") + 1); //Do note, if the optional message field ever comes with an open or close bracket [], this will break.
@@ -127,17 +164,19 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
                 appendCurrency(c);
             }
 
-        }catch(NullPointerException e){
+            //alarmMethod();
+
+        } catch (NullPointerException e) {
             //If we did not get data, or did not get good data, load from the database.
             Toast toast = Toast.makeText(Main.this, "Did not receive data from Bittrex.", Toast.LENGTH_SHORT);
             toast.show();
-            database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>(){
+            database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>() {
                 @Override
                 boolean test(Currency currency) {
                     return currency.MarketName.startsWith("USDT-");
                 }
             });
-        }finally {
+        } finally {
             //Updating the ListView
             setListAdapter();
 
@@ -157,8 +196,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     --------------------------------------------------------------------------------
     */
 
-    private Currency getNextJSONObject(Gson parser, StringBuffer JSONObjects)
-    {
+    private Currency getNextJSONObject(Gson parser, StringBuffer JSONObjects) {
 
         String json = JSONObjects.substring(0, JSONObjects.indexOf("}") + 1); //Get the next JSON object in the StringBuffer
         Currency c = parser.fromJson(json, Currency.class); //Gson parses the object and puts all of the data into a Currency
@@ -169,8 +207,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
         return c;
     }
 
-    private void appendCurrency(Currency c)
-    {
+    private void appendCurrency(Currency c) {
         if (Currencies.indexOf(c) == -1) //If this isn't in our list of currencies (I.E. a new currency was added)
         {
             if (!c.MarketName.startsWith("ETH-")) { //Take out the ETH markets
@@ -181,8 +218,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
             {
                 BannerCurrencies.add(c);
             }
-        }
-        else {
+        } else {
             if (!c.MarketName.startsWith("ETH-")) { //Take out the ETH markets
                 Currencies.get(Currencies.indexOf(c)).Last = c.Last;
                 Currencies.get(Currencies.indexOf(c)).PrevDay = c.PrevDay;
@@ -202,36 +238,31 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     */
     @Override
     public void onClick(View view) {
-        switch(view.getId())
-        {
-            case R.id.refresh:
+        switch (view.getId()) {
+            /*case R.id.refresh:
                 refreshButtonAction();
-                break;
+                break;*/
 
             case R.id.sortName:
-                if (!isSortButtonLock())
-                {
+                if (!isSortButtonLock()) {
                     sortNameButtonAction();
                 }
                 break;
 
             case R.id.sortPrice:
-                if (!isSortButtonLock())
-                {
+                if (!isSortButtonLock()) {
                     sortPriceButtonAction();
                 }
                 break;
 
             case R.id.sortChanges:
-                if (!isSortButtonLock())
-                {
+                if (!isSortButtonLock()) {
                     sortChangesButtonAction();
                 }
                 break;
 
             case R.id.sortFavorites:
-                if (!isSortButtonLock())
-                {
+                if (!isSortButtonLock()) {
                     sortFavoritesButtonAction();
                 }
                 break;
@@ -243,23 +274,19 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     private void refreshButtonAction() {
         SearchView tableSearchBar = (SearchView) findViewById(R.id.tableSearchBar);
 
-        if(!lock && tableSearchBar.isIconified()) //There were bugs letting the user refresh while the SearchView was pressed, so I just disable it here.
+        if (!lock && tableSearchBar.isIconified()) //There were bugs letting the user refresh while the SearchView was pressed, so I just disable it here.
         {
             boolean isConnected = Network.isConnected(Main.this);
 
             lock = true;
-            if (isConnected)
-            {
-                try
-                {
+            if (isConnected) {
+                try {
                     AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed(Main.this)
                             .execute(new URL("https://bittrex.com/api/v1.1/public/getmarketsummaries"));
                 } catch (MalformedURLException e) {
                     e.printStackTrace();
                 }
-            }
-            else
-            {
+            } else {
                 Toast toast = Toast.makeText(Main.this, "No connection. Cannot refresh.", Toast.LENGTH_SHORT);
                 toast.show();
                 lock = false;
@@ -270,10 +297,10 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     private void sortNameButtonAction() {
         if (sortedByName) {
             Collections.sort(AdapterCurrencies, new BackwardsCurrencyNameCompare());
-        }
-        else
-        {
+            Collections.sort(Currencies, new BackwardsCurrencyNameCompare());
+        } else {
             Collections.sort(AdapterCurrencies, new CurrencyNameCompare());
+            Collections.sort(Currencies, new CurrencyNameCompare());
         }
 
         adapter.notifyDataSetChanged();
@@ -286,10 +313,10 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     private void sortPriceButtonAction() {
         if (sortedByPrice) {
             Collections.sort(AdapterCurrencies, new BackwardsCurrencyPriceCompare());
-        }
-        else
-        {
+            Collections.sort(Currencies, new BackwardsCurrencyPriceCompare());
+        } else {
             Collections.sort(AdapterCurrencies, new CurrencyPriceCompare());
+            Collections.sort(Currencies, new CurrencyPriceCompare());
         }
 
         adapter.notifyDataSetChanged();
@@ -302,10 +329,10 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     private void sortChangesButtonAction() {
         if (sortedByChange) {
             Collections.sort(AdapterCurrencies, new BackwardsCurrencyChangeCompare());
-        }
-        else
-        {
+            Collections.sort(Currencies, new BackwardsCurrencyChangeCompare());
+        } else {
             Collections.sort(AdapterCurrencies, new CurrencyChangeCompare());
+            Collections.sort(Currencies, new CurrencyChangeCompare());
         }
 
         adapter.notifyDataSetChanged();
@@ -317,6 +344,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
 
     private void sortFavoritesButtonAction() {
         Collections.sort(AdapterCurrencies, new CurrencyFavoriteCompare());
+        Collections.sort(Currencies, new CurrencyFavoriteCompare());
         adapter.notifyDataSetChanged();
 
         sortedByName = false;
@@ -324,10 +352,8 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
         sortedByChange = false;
     }
 
-    private boolean isSortButtonLock()
-    {
-        if (AdapterCurrencies.size()!=0)
-        {
+    private boolean isSortButtonLock() {
+        if (AdapterCurrencies.size() != 0) {
             return false;
         }
         return true;
@@ -341,14 +367,12 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     */
 
     @Override
-    public boolean onQueryTextSubmit(String s)
-    {
+    public boolean onQueryTextSubmit(String s) {
         return false;
     }
 
     @Override
-    public boolean onQueryTextChange(String s)
-    {
+    public boolean onQueryTextChange(String s) {
         adapter.getFilter().filter(s);
         return true;
     }
@@ -361,10 +385,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     */
 
     //Sets the adapter for the list so that data is actually displayed.
-    //Sets the SearchView onclick listener
-    //Sets the sorting buttons
-    public void setListAdapter()
-    {
+    public void setListAdapter() {
         //Start the listAdapter
         sortedByName = true;
         sortedByPrice = false;
@@ -375,17 +396,30 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
         adapter = new CustomAdapter(AdapterCurrencies, this);
         list.setAdapter(adapter);
         list.deferNotifyDataSetChanged();
+        listAdapterSet = true;
+    }
+
+    public void updateList() {
+        SearchView tableSearchBar = (SearchView) findViewById(R.id.tableSearchBar);
+        if(tableSearchBar.isIconified()) {
+            AdapterCurrencies.clear();
+            AdapterCurrencies.addAll(Currencies);
+            ListView list = (ListView) findViewById(R.id.list);
+            if (listAdapterSet) {
+                adapter.notifyDataSetChanged();
+                list.deferNotifyDataSetChanged();
+            }
+        }
     }
 
     //Starts the horizontal scrolling for the banner
-    public void startBanner()
-    {
+    public void startBanner() {
+        bannerRunning = true;
         Collections.sort(BannerCurrencies, new CurrencyNameCompare());
         TextView banner = (TextView) findViewById(R.id.Banner);
         StringBuilder bannerStream = new StringBuilder();
-        for(Currency c : BannerCurrencies)
-        {
-            bannerStream.append("| " + c.getName() + ":  " + String.format("%.2f", c.Last)+ " |      ");
+        for (Currency c : BannerCurrencies) {
+            bannerStream.append("| " + c.getName() + ":  " + String.format("%.2f", c.Last) + " |      ");
         }
         banner.setText(bannerStream.toString());
 
@@ -393,15 +427,95 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     }
 
 
-
     //Should be called whenever data is changed in any way. Currently just saves EVERYTHING to shared preferences.
     //Only used by CustomAdapter, but CustomAdapter should not have access to the main list of currencies.
     //This will be changed when the favoriting logic is moved out of the CustomAdapter
-    public static void saveCurrencies()
-    {
+    public static void saveCurrencies() {
         database.save(Currencies);
     }
 
+
+    @SuppressWarnings("deprecation")
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                Log.i ("isMyServiceRunning?", true+"");
+                return true;
+            }
+        }
+        Log.i ("isMyServiceRunning?", false+"");
+        return false;
+    }
+
+    @Override
+    public void update()
+    {
+        database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>(){
+            @Override
+            boolean test(Currency currency) {
+                return currency.MarketName.startsWith("USDT-");
+            }
+        });
+
+        if(!bannerRunning) {
+            startBanner();
+        }
+        if(!listAdapterSet)
+        {
+            setListAdapter();
+        }
+        else
+        {
+            updateList();
+        }
+    }
+
+
+    /*--------------------------------------------------------------------------------
+    Allows the LiveUpdater service see if it needs to update data to the main activity
+    --------------------------------------------------------------------------------*/
+
+    //Callbacks for service binding, passed to bindService()
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            Log.d(tag, "service connected");
+            // cast the IBinder and get MyService instance
+            CryptoGraphUpdaterService.LocalBinder binder = (CryptoGraphUpdaterService.LocalBinder) service; //Changed from LocalBinder cast to <----
+            updaterService = binder.getService();
+            bound = true;
+            updaterService.setCallbacks(Main.this); // register
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            bound = false;
+        }
+    };
+
+    @Override
+    protected void onStart()
+    {
+        super.onStart();
+        //isRunning(true);
+        // bind to Service
+
+        Intent intent = new Intent(Main.this, CryptoGraphUpdaterService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+    }
+
+    @Override
+    protected void onStop()
+    {
+        super.onStop();
+        //isRunning(false);
+        if (bound) {
+            updaterService.setCallbacks(null); // unregister
+            unbindService(serviceConnection);
+            bound = false;
+        }
+    }
 }
-
-

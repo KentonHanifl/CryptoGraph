@@ -75,7 +75,7 @@
             android:visibility="visible"
             app:layout_constraintHorizontal_bias="0.064"
             app:layout_constraintTop_toTopOf="@+id/list" />
-
+<!-->
         <Button
             android:id="@+id/refresh"
             android:layout_width="wrap_content"
@@ -84,7 +84,7 @@
             android:layout_alignParentTop="true"
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true" />
-
+<-->
         <Button
             android:id="@+id/sortName"
             style="@android:style/Widget.DeviceDefault.Light.Button.Small"

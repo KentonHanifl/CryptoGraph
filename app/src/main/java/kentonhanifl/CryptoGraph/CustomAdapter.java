@@ -47,6 +47,8 @@ public class CustomAdapter extends ArrayAdapter<Currency>
     --------------------------------------------------------------------------------
     FILTER
     Filters the ListView when called by the SearchView queries
+    Edited from:
+    https://www.survivingwithandroid.com/2012/10/android-listview-custom-filter-and.html
     --------------------------------------------------------------------------------
     */
     public Filter getFilter()

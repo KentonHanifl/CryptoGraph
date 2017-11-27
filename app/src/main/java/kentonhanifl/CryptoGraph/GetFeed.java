@@ -10,6 +10,8 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import static kentonhanifl.CryptoGraph.Main.tag;
+
 public class GetFeed extends AsyncTask<URL, Integer, StringBuffer>{
 
     public AsyncResponse response = null;
@@ -23,6 +25,7 @@ public class GetFeed extends AsyncTask<URL, Integer, StringBuffer>{
     protected StringBuffer doInBackground(URL ... urls) {
         //Get JSON objects
         //We just put the entire HTTP response into a StringBuffer
+
         HttpURLConnection connection = null;
         StringBuffer response = null;
 
@@ -30,6 +33,7 @@ public class GetFeed extends AsyncTask<URL, Integer, StringBuffer>{
             //We only want the first URL. No use for the other ones, but the override MAKES us have a list for the parameter on doInBackground()
             URL url= urls[0];
             connection = (HttpURLConnection) url.openConnection();
+
             BufferedReader in = new BufferedReader(
                                     new InputStreamReader(
                                         connection.getInputStream()));
@@ -49,6 +53,7 @@ public class GetFeed extends AsyncTask<URL, Integer, StringBuffer>{
         return response;
     }
 
+    @Override
     protected void onPostExecute(StringBuffer jsonStringBuffer)
     {
         response.processFinish(jsonStringBuffer);
