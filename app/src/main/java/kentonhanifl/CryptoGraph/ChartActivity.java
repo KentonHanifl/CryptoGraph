@@ -261,25 +261,29 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse, C
             chartList.clear();
         }
 
-        //Using Gson to parse the JSON object after cleaning it up.
-        //I.E. the HTTP response comes with a bunch of useless stuff before the objects we want.
-        jsonStringBuffer.delete(0, jsonStringBuffer.indexOf("[") + 1); //Do note, if the optional message field ever comes with an open or close bracket [], this will break.
-        jsonStringBuffer.delete(jsonStringBuffer.lastIndexOf("]"), jsonStringBuffer.lastIndexOf("}") + 1);
+        try {
+            //Using Gson to parse the JSON object after cleaning it up.
+            //I.E. the HTTP response comes with a bunch of useless stuff before the objects we want.
+            jsonStringBuffer.delete(0, jsonStringBuffer.indexOf("[") + 1); //Do note, if the optional message field ever comes with an open or close bracket [], this will break.
+            jsonStringBuffer.delete(jsonStringBuffer.lastIndexOf("]"), jsonStringBuffer.lastIndexOf("}") + 1);
 
-        Gson gsonout = new Gson();
-        //Get each JSON object and put it in the data that we will build our chart out of.
-        //If any messages ever contain a open or close curly bracket {}, this will break.
-        while (jsonStringBuffer.length() != 0) {
-            String json = jsonStringBuffer.substring(0, jsonStringBuffer.indexOf("}") + 1); //Get a (the first) JSON object in the StringBuffer
-            CurrencyChartData data = gsonout.fromJson(json, CurrencyChartData.class); //Gson parses the object and puts all of the data into a chart data
-            jsonStringBuffer.delete(0, jsonStringBuffer.indexOf("}") + 1); //Delete the JSON object we just parsed from the StringBuffer to get the next one
-            chartList.add(data);
-            if(jsonStringBuffer.length()!=0)
-            {
-                jsonStringBuffer.delete(0,1); //Delete the comma between each object
+            Gson gsonout = new Gson();
+            //Get each JSON object and put it in the data that we will build our chart out of.
+            //If any messages ever contain a open or close curly bracket {}, this will break.
+            while (jsonStringBuffer.length() != 0) {
+                String json = jsonStringBuffer.substring(0, jsonStringBuffer.indexOf("}") + 1); //Get a (the first) JSON object in the StringBuffer
+                CurrencyChartData data = gsonout.fromJson(json, CurrencyChartData.class); //Gson parses the object and puts all of the data into a chart data
+                jsonStringBuffer.delete(0, jsonStringBuffer.indexOf("}") + 1); //Delete the JSON object we just parsed from the StringBuffer to get the next one
+                chartList.add(data);
+                if (jsonStringBuffer.length() != 0) {
+                    jsonStringBuffer.delete(0, 1); //Delete the comma between each object
+                }
             }
+        }catch(NullPointerException e) {
+            Toast toast = Toast.makeText(this, "Did not get back data from Bittrex. Cannot load chart.", Toast.LENGTH_SHORT);
+            toast.show();
+            e.printStackTrace();
         }
-
         //Draw the chart once we're done building up the data
         drawChart();
     }
@@ -381,10 +385,18 @@ public class ChartActivity extends AppCompatActivity implements AsyncResponse, C
     */
     private void setInfoText(CurrencyChartData c)
     {
-        open.setText(String.format("%.8f",c.O));
-        close.setText(String.format("%.8f",c.C));
-        high.setText(String.format("%.8f",c.H));
-        low.setText(String.format("%.8f",c.L));
+        //If it's a USDT market, use 2 decimal places, if not, use 8.
+        String formatString;
+        if (MarketName.startsWith("USDT-")){
+            formatString = "%.2f";
+        }
+        else{
+            formatString = "%.8f";
+        }
+        open.setText(String.format(formatString,c.O));
+        close.setText(String.format(formatString,c.C));
+        high.setText(String.format(formatString,c.H));
+        low.setText(String.format(formatString,c.L));
         volume.setText(String.format("%.2f",c.BV));
         time.setText(c.getDateTime());
     }

@@ -155,7 +155,13 @@ public class CustomAdapter extends ArrayAdapter<Currency>
         */
 
         TextView text2 = (TextView) view.findViewById(R.id.tableCell2);
-        final String last = String.format("%.8f",getItem(position).Last);
+        final String last;
+        if(getItem(position).getName().startsWith("USDT-")){
+            last = String.format("%.2f", getItem(position).Last);
+        }
+        else{
+            last = String.format("%.8f",getItem(position).Last);
+        }
         text2.setText(last); //-------Raises a weird warning...
 
 

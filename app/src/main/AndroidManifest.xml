@@ -23,6 +23,12 @@
         <activity android:name="kentonhanifl.CryptoGraph.ChartActivity"
             android:screenOrientation="portrait">
         </activity>
+        <activity android:name="kentonhanifl.CryptoGraph.Settings"
+            android:screenOrientation="portrait">
+        </activity>
+        <activity android:name="kentonhanifl.CryptoGraph.About"
+            android:screenOrientation="portrait">
+        </activity>
         <receiver
             android:name=".CryptoGraphRestartServiceBroadcaster"
             android:enabled="true"

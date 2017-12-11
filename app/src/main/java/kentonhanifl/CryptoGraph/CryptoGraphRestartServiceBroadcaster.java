@@ -7,11 +7,11 @@ import android.util.Log;
 
 import static kentonhanifl.CryptoGraph.Main.tag;
 
+//Restarts the UpdaterService whenever the service calls its onDestroy() method, broadcasting to this.
 public class CryptoGraphRestartServiceBroadcaster extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        //Log.d(tag, "Service Stops");
         context.startService(new Intent(context, CryptoGraphUpdaterService.class));
     }
 }

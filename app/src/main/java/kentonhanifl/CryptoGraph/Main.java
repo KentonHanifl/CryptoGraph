@@ -1,89 +1,84 @@
 package kentonhanifl.CryptoGraph;
 
 import android.app.ActivityManager;
-import android.app.AlarmManager;
-import android.app.Notification;
-import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.IBinder;
-import android.os.SystemClock;
-import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import android.support.v7.app.NotificationCompat;
+import android.support.v7.view.menu.MenuBuilder;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
 
-import android.widget.Toast;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
-
-import com.google.gson.Gson;
 
 //ERROR CODES
 //ERR1: Error loading currency. Clear app data and start again.
 
-public class Main extends AppCompatActivity implements AsyncResponse, View.OnClickListener, SearchView.OnQueryTextListener, LiveUpdaterCallbacks {
+public class Main extends AppCompatActivity implements View.OnClickListener, SearchView.OnQueryTextListener, LiveUpdaterCallbacks {
+    //Keeping track of the order the list is sorted
     private boolean sortedByName = true;
     private boolean sortedByPrice = false;
     private boolean sortedByChange = false;
 
     public static String tag = "kk"; //For debug messages to logcat
 
-    private boolean lock = false; //Lock on the refresh button
-
     public static ArrayList<Currency> Currencies = new ArrayList<Currency>();
     private ArrayList<Currency> BannerCurrencies = new ArrayList<Currency>();
     public static ArrayList<Currency> AdapterCurrencies = new ArrayList<Currency>();
-
     private CustomAdapter adapter;
 
     public static Database database;
 
-    private PendingIntent pendingIntent;
-
-    private boolean bound = false;
     private boolean bannerRunning = false;
     private boolean listAdapterSet = false;
-    Intent updaterIntent;
     private CryptoGraphUpdaterService updaterService;
-
-    Context ctx;
-
-    public Context getCtx() {
-        return ctx;
-    }
+    private Intent updaterIntent;
+    private boolean bound = false;
+    private Context ctx;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ctx = this;
         setContentView(R.layout.activity_main);
+        ctx = this;
 
-        updaterService = new CryptoGraphUpdaterService((getCtx()));
-        updaterIntent = new Intent(getCtx(), updaterService.getClass());
-        if (!isMyServiceRunning(updaterService.getClass())) {
+
+        updaterService = new CryptoGraphUpdaterService(ctx);
+        updaterIntent = new Intent(ctx, updaterService.getClass());
+
+        //This starts the updater service if it isn't running.
+        //It starts a foreground service with a notification that cannot be removed.
+        if (!isMyServiceRunning(CryptoGraphUpdaterService.class)){
+            Log.d(tag, "start");
             startService(updaterIntent);
         }
+        else{//Try to restart the service.
+            stopService(updaterIntent);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
 
         //Load the database
-        database = new Database(getSharedPreferences("TradeViewData", 0));
+        database = new Database(getSharedPreferences("CryptoGraphData", 0));
         //Load the database (currently loading the USDT markets into the banner)
         database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>() {
             @Override
@@ -101,33 +96,7 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
             setListAdapter();
         }
 
-
-/*
-        //If we are connected, try to get the feed for the markets.
-        if (Network.isConnected(this)) {
-            try {
-                AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed(this)
-                        .execute(new URL("https://bittrex.com/api/v1.1/public/getmarketsummaries"));
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-        } else {
-            Toast toast = Toast.makeText(this, "No internet connection. Loading data if available.", Toast.LENGTH_SHORT);
-            toast.show();
-            //If we have data loaded:
-            if (database.getDataSize() != 0) {
-                //Updating the ListView
-                setListAdapter();
-
-                //Start the scrolling banner
-                startBanner();
-            }
-        }
-*/
         //Set up all of the buttons and searchview
-
-        //Button refresh = (Button) findViewById(R.id.refresh);
-        //refresh.setOnClickListener(this);
 
         Button sortName = (Button) findViewById(R.id.sortName);
         sortName.setOnClickListener(this);
@@ -143,92 +112,10 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
 
         SearchView tableSearchBar = (SearchView) findViewById(R.id.tableSearchBar);
         tableSearchBar.setOnQueryTextListener(this);
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.Toolbar);
+        setSupportActionBar(toolbar);
     }
-
-    /*
-    --------------------------------------------------------------------------------
-    Handling the AsyncTask data (from getFeed())
-    Builds up the list of currencies from the returned JSON objects
-    --------------------------------------------------------------------------------
-    */
-    @Override
-    public void processFinish(StringBuffer jsonStringBuffer) {
-        try {
-            //The HTTP response comes with a bunch of useless stuff before the objects we want. Clean it up.
-            jsonStringBuffer.delete(0, jsonStringBuffer.indexOf("[") + 1); //Do note, if the optional message field ever comes with an open or close bracket [], this will break.
-            jsonStringBuffer.delete(jsonStringBuffer.lastIndexOf("]"), jsonStringBuffer.lastIndexOf("}") + 1);
-
-            Gson gsonout = new Gson();
-            while (jsonStringBuffer.length() != 0) {
-                Currency c = getNextJSONObject(gsonout, jsonStringBuffer);
-                appendCurrency(c);
-            }
-
-            //alarmMethod();
-
-        } catch (NullPointerException e) {
-            //If we did not get data, or did not get good data, load from the database.
-            Toast toast = Toast.makeText(Main.this, "Did not receive data from Bittrex.", Toast.LENGTH_SHORT);
-            toast.show();
-            database.loadDatabase(Currencies, BannerCurrencies, new BannerCondition<Currency>() {
-                @Override
-                boolean test(Currency currency) {
-                    return currency.MarketName.startsWith("USDT-");
-                }
-            });
-        } finally {
-            //Updating the ListView
-            setListAdapter();
-
-            //Start the scrolling banner
-            startBanner();
-
-            //Save array in shared preferences
-            saveCurrencies();
-
-            lock = false; //Reset the lock on the refresh button
-        }
-    }
-
-    /*
-    --------------------------------------------------------------------------------
-    FUNCTIONS CALLED BY PROCESSFINISH()
-    --------------------------------------------------------------------------------
-    */
-
-    private Currency getNextJSONObject(Gson parser, StringBuffer JSONObjects) {
-
-        String json = JSONObjects.substring(0, JSONObjects.indexOf("}") + 1); //Get the next JSON object in the StringBuffer
-        Currency c = parser.fromJson(json, Currency.class); //Gson parses the object and puts all of the data into a Currency
-        JSONObjects.delete(0, JSONObjects.indexOf("}") + 1); //Delete the JSON object we just parsed from the StringBuffer to get the next one
-        if (JSONObjects.length() != 0) {
-            JSONObjects.delete(0, 1); //Delete the comma between each object
-        }
-        return c;
-    }
-
-    private void appendCurrency(Currency c) {
-        if (Currencies.indexOf(c) == -1) //If this isn't in our list of currencies (I.E. a new currency was added)
-        {
-            if (!c.MarketName.startsWith("ETH-")) { //Take out the ETH markets
-                Currencies.add(c); //Add the newly parsed JSON object turned into a currency into the list
-            }
-
-            if (c.MarketName.startsWith("USDT-")) //Add to separate list for the banner too if it's a USDT market
-            {
-                BannerCurrencies.add(c);
-            }
-        } else {
-            if (!c.MarketName.startsWith("ETH-")) { //Take out the ETH markets
-                Currencies.get(Currencies.indexOf(c)).Last = c.Last;
-                Currencies.get(Currencies.indexOf(c)).PrevDay = c.PrevDay;
-            }
-            if (c.MarketName.startsWith("USDT-")) {
-                BannerCurrencies.get(BannerCurrencies.indexOf(c)).Last = c.Last;
-            }
-        }
-    }
-
 
     /*
     --------------------------------------------------------------------------------
@@ -239,10 +126,6 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            /*case R.id.refresh:
-                refreshButtonAction();
-                break;*/
-
             case R.id.sortName:
                 if (!isSortButtonLock()) {
                     sortNameButtonAction();
@@ -267,30 +150,6 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
                 }
                 break;
 
-        }
-    }
-
-
-    private void refreshButtonAction() {
-        SearchView tableSearchBar = (SearchView) findViewById(R.id.tableSearchBar);
-
-        if (!lock && tableSearchBar.isIconified()) //There were bugs letting the user refresh while the SearchView was pressed, so I just disable it here.
-        {
-            boolean isConnected = Network.isConnected(Main.this);
-
-            lock = true;
-            if (isConnected) {
-                try {
-                    AsyncTask<URL, Integer, StringBuffer> Markets = new GetFeed(Main.this)
-                            .execute(new URL("https://bittrex.com/api/v1.1/public/getmarketsummaries"));
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                Toast toast = Toast.makeText(Main.this, "No connection. Cannot refresh.", Toast.LENGTH_SHORT);
-                toast.show();
-                lock = false;
-            }
         }
     }
 
@@ -435,18 +294,6 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     }
 
 
-    @SuppressWarnings("deprecation")
-    private boolean isMyServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                Log.i ("isMyServiceRunning?", true+"");
-                return true;
-            }
-        }
-        Log.i ("isMyServiceRunning?", false+"");
-        return false;
-    }
 
     @Override
     public void update()
@@ -476,7 +323,25 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     /*--------------------------------------------------------------------------------
     Allows the LiveUpdater service see if it needs to update data to the main activity
     --------------------------------------------------------------------------------*/
+    @SuppressWarnings("deprecation")
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                Log.i ("isMyServiceRunning?", true+"");
+                return true;
+            }
+        }
+        Log.i ("isMyServiceRunning?", false+"");
+        return false;
+    }
 
+    private boolean isUpdaterServiceForeground()
+    {
+        SharedPreferences pref = getSharedPreferences("CryptoGraphData",0);
+        boolean tof = pref.getBoolean("updaterServiceRunning", false);
+        return tof;
+    }
     //Callbacks for service binding, passed to bindService()
     private ServiceConnection serviceConnection = new ServiceConnection() {
 
@@ -500,7 +365,6 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     protected void onStart()
     {
         super.onStart();
-        //isRunning(true);
         // bind to Service
 
         Intent intent = new Intent(Main.this, CryptoGraphUpdaterService.class);
@@ -512,11 +376,38 @@ public class Main extends AppCompatActivity implements AsyncResponse, View.OnCli
     protected void onStop()
     {
         super.onStop();
-        //isRunning(false);
         if (bound) {
             updaterService.setCallbacks(null); // unregister
             unbindService(serviceConnection);
             bound = false;
+        }
+    }
+
+
+    /*--------------------------------------------------------------------------------
+    Menu inflation and callbacks
+    --------------------------------------------------------------------------------*/
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.toolbarmenu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.settings:
+                Intent settingsIntent = new Intent(this, Settings.class);
+                startActivity(settingsIntent);
+                return true;
+            case R.id.about:
+                Intent aboutIntent = new Intent(this, About.class);
+                startActivity(aboutIntent);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 }

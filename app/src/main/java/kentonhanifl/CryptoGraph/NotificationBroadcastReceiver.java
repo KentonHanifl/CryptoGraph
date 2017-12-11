@@ -18,6 +18,8 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
     ArrayList<Currency> Currencies = new ArrayList<Currency>();
     Database notificationCurrencies;
     Database database;
+    float threshold;
+    int hours;
 
     int delay = 5;
 
@@ -25,10 +27,9 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
 
         SharedPreferences.Editor editor = database.edit();
         if(database.contains(c.getName())) {
-            //Log.d(tag,"if");
             editor.putInt(c.getName(),(database.getInt(c.getName(), 0)+delay));
             editor.commit();
-            if(database.getInt(c.getName(),0)>3600)
+            if(database.getInt(c.getName(),0)>(hours*3600))
             {
                 editor.putInt(c.getName(),0);
                 editor.commit();
@@ -36,7 +37,6 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
             }
         }
         else{
-            //Log.d(tag, "else");
             editor.putInt(c.getName(),0);
             editor.commit();
             return true;
@@ -47,23 +47,30 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         SharedPreferences notificationPreferences = context.getSharedPreferences("CryptoGraphNotificationData", 0);
-
+        //
         notificationCurrencies = new Database(notificationPreferences);
         notificationCurrencies.loadOnlyCurrencies(notificationCurrenciesList);
-
-        database = new Database(context.getSharedPreferences("TradeViewData",0));
+        SharedPreferences pref = context.getSharedPreferences("CryptoGraphData",0);
+        database = new Database(pref);
         database.loadOnlyCurrencies(Currencies);
+        String thresholdstring = pref.getString("Threshold","15");
+        threshold = Float.valueOf(thresholdstring);
+        String stringhours = pref.getString("Hours","1");
+        hours = Integer.valueOf(stringhours);
 
         for(Currency c : Currencies)
         {
-            if(c.favorite && c.getChange()>20f)
+            float change = c.getChange();
+            String updown = "up ";
+            if (change<1f) updown = "down ";
+            if(c.favorite && (change>threshold||change<threshold))
             {
                 if (notNotifiedLastHour(c, notificationPreferences)){
                     // build notification
                     // the addAction re-use the same intent to keep the example short
                     NotificationCompat.Builder n;
                     n = new NotificationCompat.Builder(context)
-                            .setContentTitle(c.getName() + " is up " + String.format("%.2f", c.getChange()))
+                            .setContentTitle(c.getName() + " is " + updown + String.format("%.1f", c.getChange()) + "%")
                             //.setContentText("Subject")
                             .setSmallIcon(R.mipmap.ic_launcher_round);
 
